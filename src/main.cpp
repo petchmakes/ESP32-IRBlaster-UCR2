@@ -1,80 +1,16 @@
-//
-// A simple server implementation showing how to:
-//  * serve static messages
-//  * read GET and POST parameters
-//  * handle missing pages / 404s
-//
+// Copyright 2024 Craig Petchell
 
 #include <Arduino.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
-#include <Dictionary.h>
+#include <string.h>
+
 #include <secrets.h>
 
 AsyncWebServer server(946);
 AsyncWebSocket ws("/");
-
-enum MessageType {
-    UNKNOWN_MESSAGE_TYPE = 0,
-    AUTH,
-    DOCK,
-};
-
-Dictionary* MessageTypeDict = new Dictionary(3);
-
-void initMessageTypeDict() {
-    MessageTypeDict->insert("auth", AUTH);
-    MessageTypeDict->insert("dock", DOCK);
-}
-
-MessageType getMessageType(const char *messageType) {
-    String value = MessageTypeDict->search(messageType);
-    return (MessageType) value.toInt();
-}
-
-enum Command {
-    UNKNOWN_COMMAND = 0,
-    GET_SYSINFO,
-    SET_CONFIG,
-    IR_SEND,
-    IR_STOP,
-    IR_RECEIVE_ON,
-    IR_RECEIVE_OFF,
-    REMOTE_CHARGED,
-    REMOTE_LOWBATTERY,
-    REMOTE_NORMAL,
-    IDENTIFY,
-    REBOOT,
-    RESET,
-    SET_BRIGHTNESS,
-    SET_LOGGING,
-};
-
-Dictionary* CommandsDict = new Dictionary(15);
-
-void initCommandsDict() {
-    CommandsDict->insert("get_sysinfo", GET_SYSINFO);
-    CommandsDict->insert("set_config", SET_CONFIG);
-    CommandsDict->insert("ir_send", IR_SEND);
-    CommandsDict->insert("ir_stop", IR_STOP);
-    CommandsDict->insert("ir_receive_on", IR_RECEIVE_ON);
-    CommandsDict->insert("ir_receive_off", IR_RECEIVE_OFF);
-    CommandsDict->insert("remote_charged", REMOTE_CHARGED);
-    CommandsDict->insert("remote_lowbattery", REMOTE_LOWBATTERY);
-    CommandsDict->insert("remote_normal", REMOTE_NORMAL);
-    CommandsDict->insert("identify", IDENTIFY);
-    CommandsDict->insert("reboot", REBOOT);
-    CommandsDict->insert("reset", RESET);
-    CommandsDict->insert("set_brightness", SET_BRIGHTNESS);
-    CommandsDict->insert("set_logging", SET_LOGGING);
-}
-
-Command getCommand(const char *command) {
-    String value = CommandsDict->search(command);
-    return (Command) value.toInt();
-}
 
 void notFound(AsyncWebServerRequest *request) {
     request->send(404, "text/plain", "Not found");
@@ -97,82 +33,70 @@ void setDefaultResponseFields(DynamicJsonDocument& input, DynamicJsonDocument& o
 
 void onDockMessage(DynamicJsonDocument& input, DynamicJsonDocument& output) {
     const char* type = input["type"];
-    MessageType typeEnum = getMessageType(type);
-    switch(typeEnum) {
-        case AUTH:
-        {
-            Serial.printf("Received auth message type\n");
-            output["type"] = input["type"];
-            output["msg"] = "authentication";
-            output["code"] = 200;
-            break;
+    // Order most common -> least common
+    if(!strcmp("dock", type)) {
+        const char* command = input["command"];
+        if (!strcmp("ir_send", command)) {
+            setDefaultResponseFields(input, output);
+            // TODO send IR
+
+        } else if (!strcmp("ir_stop", command)) {
+            setDefaultResponseFields(input, output);
+            // TODO stop any active IR
+        } else if (!strcmp("get_sysinfo", command)) {
+            setDefaultResponseFields(input, output);
+            output["name"] = "ESP32-S2";
+            output["hostname"] = "blah.local";
+            output["model"] = "ESP32-S2";
+            output["revision"] = "5.4";
+            output["version"] = "0.4.0";
+            output["serial"] = "666";
+            output["ir_learning"] = false; 
+        } else if (!strcmp("set_config", command)) {
+            // DO NOTHING BUT REPLY (for now)
+            setDefaultResponseFields(input, output);
+        } else if (!strcmp("identify", command)) {
+            // DO NOTHING BUT REPLY (for now)
+            setDefaultResponseFields(input, output);
+        } else if (!strcmp("ir_receive_on", command)) {
+            // DO NOTHING BUT REPLY (for now)
+            setDefaultResponseFields(input, output);
+        } else if (!strcmp("ir_receive_off", command)) {
+            // DO NOTHING BUT REPLY (for now)
+            setDefaultResponseFields(input, output);
+        } else if (!strcmp("remote_charged", command)) {
+            // DO NOTHING BUT REPLY (for now)
+            setDefaultResponseFields(input, output);
+        } else if (!strcmp("remote_lowbattery", command)) {
+            // DO NOTHING BUT REPLY (for now)
+            setDefaultResponseFields(input, output);
+        } else if (!strcmp("remote_normal", command)) {
+            // DO NOTHING BUT REPLY (for now)
+            setDefaultResponseFields(input, output);
+        } else if (!strcmp("reboot", command)) {
+            setDefaultResponseFields(input, output, 200, true);
+            ESP.restart();
+        } else if (!strcmp("reset", command)) {
+            // DO NOTHING BUT REPLY (for now)
+            setDefaultResponseFields(input, output);
+        } else if (!strcmp("set_brightness", command)) {
+            // DO NOTHING BUT REPLY (for now)
+            setDefaultResponseFields(input, output);
+        } else if (!strcmp("set_logging", command)) {
+            // DO NOTHING BUT REPLY (for now)
+            setDefaultResponseFields(input, output);
+        } else {
+            Serial.printf("Unknown command %s\n", command);
+            setDefaultResponseFields(input, output, 400);
         }
-
-        case DOCK:
-        {
-            const char* command = input["command"];
-            Command commandEnum = getCommand(command);
-            switch(commandEnum) {
-                case GET_SYSINFO:
-                {
-                    setDefaultResponseFields(input, output);
-                    output["name"] = "ESP32-S2";
-                    output["hostname"] = "blah.local";
-                    output["model"] = "ESP32-S2";
-                    output["revision"] = "5.4";
-                    output["version"] = "0.4.0";
-                    output["serial"] = "666";
-                    output["ir_learning"] = false; 
-                    break;
-                }
-                case IR_SEND:
-                {
-                    setDefaultResponseFields(input, output);
-                    // TODO send IR
-                    break;
-                }
-                case IR_STOP:
-                {
-                    setDefaultResponseFields(input, output);
-                    // TODO stop any active IR
-                    break;
-                }
-                case REBOOT:
-                {
-                    setDefaultResponseFields(input, output, 200, true);
-                    ESP.restart();
-                    break;
-                }
-                case SET_CONFIG:
-                case IR_RECEIVE_ON:
-                case IR_RECEIVE_OFF:
-                case REMOTE_CHARGED:
-                case REMOTE_LOWBATTERY:
-                case REMOTE_NORMAL:
-                case IDENTIFY:
-                case RESET:
-                case SET_BRIGHTNESS:
-                case SET_LOGGING:
-                {
-                    setDefaultResponseFields(input, output);
-                    // DO NOTHING BUT REPLY (for now)
-                    break;
-                }
-
-                default:
-                {
-                    Serial.printf("Unknown command %s\n", command);
-                    break;
-                }      
-            }  
-            break;
-        }
-
-        default:
-        {
-            Serial.printf("Unknown type %s\n", type);
-            break;
-        }        
+    } else if(!strcmp("auth", type)) {
+        Serial.printf("Received auth message type\n");
+        output["type"] = input["type"];
+        output["msg"] = "authentication";
+        output["code"] = 200;    
+    } else {
+        Serial.printf("Unknown type %s\n", type);
+        setDefaultResponseFields(input, output, 400);
     }
 }
 
@@ -217,9 +141,6 @@ void onWSEvent(AsyncWebSocket       *server,
 
 
 void setup() {
-    initMessageTypeDict();
-    initCommandsDict();
-
     Serial.begin(115200);
     WiFi.mode(WIFI_STA);
     WiFi.begin(wifi_ssid, wifi_password);
