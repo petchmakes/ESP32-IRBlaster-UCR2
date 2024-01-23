@@ -11,12 +11,15 @@
 #include <ir_queue.h>
 #include <web_task.h>
 
+char deviceSerialNo[50];
+
 // Current text ir code
 char irCode[MAX_IR_TEXT_CODE_LENGTH] = "";
 char irFormat[MAX_IR_FORMAT_TYPE] = "";
 
 void notFound(AsyncWebServerRequest *request)
 {
+    Serial.printf("404 for: %s\n", request->url());
     request->send(404, "text/plain", "Not found");
 }
 
@@ -214,12 +217,23 @@ void queueIR(JsonDocument &input, JsonDocument &output)
     message.ir_ext2 = ir_ext2;
     message.repeat = newRepeat;
 
-    if (uxQueueMessagesWaiting(irQueueHandle) != 0 &&
-        irCode[0] && (strcmp(newCode, irCode) != 0) && (strcmp(newFormat, irFormat) != 0))
+    if (uxQueueMessagesWaiting(irQueueHandle) != 0) 
     {
-        // Still sending and different code - reject
-        setDefaultResponseFields(input, output, 429);
-        return;
+        // Message being processed
+        if(irCode[0] && (strcmp(newCode, irCode) == 0) && (strcmp(newFormat, irFormat) == 0))
+        {
+            // Same message. send repeat command
+            setDefaultResponseFields(input, output, 202);
+            message.action = repeat;
+            queueIRMessage(message);
+            return;
+        }
+        else
+        {
+            // Different message - reject
+            setDefaultResponseFields(input, output, 429);
+            return;
+        }
     }
 
     if (strlen(newCode) > sizeof(irCode))
@@ -287,12 +301,12 @@ void onDockMessage(JsonDocument &input, JsonDocument &output)
         else if (!strcmp("get_sysinfo", command))
         {
             setDefaultResponseFields(input, output);
-            output["name"] = "ESP32-S2";
+            output["name"] = "UC-ESP32-IRBlaster";
             output["hostname"] = "blah.local";
-            output["model"] = "ESP32-S2";
-            output["revision"] = "5.4";
-            output["version"] = "0.4.0";
-            output["serial"] = "666";
+            output["model"] = "UC-ESP32-IRBlaster";
+            output["revision"] = "1.0";
+            output["version"] = "0.9.0";
+            output["serial"] = deviceSerialNo;
             output["ir_learning"] = false;
         }
         else if (!strcmp("set_config", command))
@@ -383,6 +397,7 @@ void onWSEvent(AsyncWebSocket *server,
     {
     case WS_EVT_CONNECT:
         Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+        client->keepAlivePeriod(1);
         onConnection(input, output);
         break;
     case WS_EVT_DISCONNECT:
@@ -400,7 +415,9 @@ void onWSEvent(AsyncWebSocket *server,
             Serial.print("WebSocket no JSON document sent\n");
         }
     case WS_EVT_PONG:
+        break;
     case WS_EVT_ERROR:
+        Serial.printf("WebSocket client #%u error #%u: %s\n", client->id(), *((uint16_t*)arg), (char*)data);
         break;
     }
     if (!output.isNull())
@@ -417,6 +434,8 @@ void onWSEvent(AsyncWebSocket *server,
 void TaskWeb(void *pvParameters)
 {
     Serial.printf("TaskWeb running on core %d\n", xPortGetCoreID());
+    Serial.printf("Serial number %s\n", pvParameters);
+    strcpy(deviceSerialNo, (const char *) pvParameters);
 
     AsyncWebServer server(946);
     AsyncWebSocket ws("/");
@@ -424,6 +443,7 @@ void TaskWeb(void *pvParameters)
     // server.
     ws.onEvent(onWSEvent);
     server.addHandler(&ws);
+    server.onNotFound(notFound);
 
     server.begin();
 

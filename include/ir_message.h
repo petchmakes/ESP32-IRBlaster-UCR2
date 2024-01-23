@@ -11,6 +11,7 @@
 enum ir_action {
     stop,
     send,
+    repeat,
 };
 
 enum ir_format {

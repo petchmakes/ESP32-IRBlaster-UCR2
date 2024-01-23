@@ -68,13 +68,10 @@ void TaskSendIR(void *pvParameters)
             int ret = xQueueReceive(irQueueHandle, &message, portMAX_DELAY);
             if (ret == pdPASS)
             {
-                if (message.action == stop)
+                switch (message.action)
                 {
-                    irRepeat = 0;
-                }
-                else
+                case send:
                 {
-                    // // TODO validate same type, if still repeating
                     uint32_t ir_pin_mask = 0 | 1 << BLASTER_PIN_INDICATOR | message.ir_internal << BLASTER_PIN_IR_INTERNAL | message.ir_ext1 << BLASTER_PIN_IR_OUT_1 | message.ir_ext2 << BLASTER_PIN_IR_OUT_2;
                     irsend.setPinMask(ir_pin_mask);
                     switch (message.format)
@@ -86,6 +83,19 @@ void TaskSendIR(void *pvParameters)
                         sendHexCode(message);
                         break;
                     }
+                    break;
+                }
+                case repeat:
+                {
+                    irRepeat += message.repeat;
+                    break;
+                }
+                case stop:
+                default:
+                {
+                    irRepeat = 0;
+                    break;
+                }
                 }
             }
         }

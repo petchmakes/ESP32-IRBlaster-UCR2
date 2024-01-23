@@ -31,8 +31,11 @@ void setup()
         return;
     }
 
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
+    Serial.printf("IP Address: %s\n", WiFi.localIP().toString());
+
+    char deviceSerialNo[18] = { 0 };
+    strcpy(deviceSerialNo, WiFi.macAddress().c_str());
+    Serial.printf("MAC address: %s\n", deviceSerialNo);
 
     // Create the queue which will have <QueueElementSize> number of elements, each of size `message_t` and pass the address to <QueueHandle>.
     irQueueHandle = xQueueCreate(IR_QUEUE_SIZE, sizeof(ir_message_t));
@@ -48,7 +51,7 @@ void setup()
     // Set up two tasks to run independently.
     const BaseType_t  webTaskHandle = xTaskCreatePinnedToCore(
         TaskWeb, "Task Web/Websocket server",
-        32768, NULL, 2, NULL, 0
+        32768, deviceSerialNo, 2, NULL, 0
     );
 
     const BaseType_t irTaskHandle = xTaskCreatePinnedToCore(
