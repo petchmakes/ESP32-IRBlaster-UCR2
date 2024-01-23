@@ -2,6 +2,7 @@
 
 #include <freertos/FreeRTOS.h>
 #include <IRsend.h>
+#include <IRutils.h>
 
 #include <ir_message.h>
 #include <ir_task.h>
@@ -35,15 +36,23 @@ void irSetup()
 
 void sendProntoCode(ir_message_t &message)
 {
-    irsend.sendPronto(message.code, message.codeLen, message.repeat);
-    irRepeat = 1;
+    irsend.sendPronto(message.code16, message.codeLen, message.repeat);
+    irRepeat = 0;
 }
 
-void sendRawCode(ir_message_t &message)
+void sendHexCode(ir_message_t &message)
 {
     // Copy so not overritten on next message
     memcpy(&repeatMessage, &message, sizeof(ir_message_t));
-    // irsend.sendRaw(message.code, message.codeLen, message.hz);
+    irRepeat = message.repeat;
+    if (hasACState(message.decodeType))
+    {
+        irsend.send(message.decodeType, message.code8, message.codeLen);
+    }
+    else
+    {
+        irsend.send(message.decodeType, message.code64, message.codeLen, irRepeat);
+    }
 }
 
 void TaskSendIR(void *pvParameters)
@@ -74,7 +83,7 @@ void TaskSendIR(void *pvParameters)
                         sendProntoCode(message);
                         break;
                     case hex:
-                        sendRawCode(message);
+                        sendHexCode(message);
                         break;
                     }
                 }
