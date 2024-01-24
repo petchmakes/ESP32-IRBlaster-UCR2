@@ -15,7 +15,7 @@
 
 const char *deviceModel = "PetchMakesBlaster";
 const char *deviceRevision = "1.0";
-const char *firmwareVersion = "0.1.0";
+const char *firmwareVersion = "0.9.0";
 
 char deviceSerialNo[50];
 
