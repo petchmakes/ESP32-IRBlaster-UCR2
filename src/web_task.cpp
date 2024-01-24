@@ -1,17 +1,25 @@
 // Copyright 2024 Craig Petchell
 
 #include <freertos/FreeRTOS.h>
+#include <Arduino.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include <string.h>
 #include <IRutils.h>
 
+#include <blaster_config.h>
 #include <ir_message.h>
 #include <ir_queue.h>
 #include <web_task.h>
 
+const char *deviceModel = "PetchMakesBlaster";
+const char *deviceRevision = "1.0";
+const char *firmwareVersion = "0.1.0";
+
 char deviceSerialNo[50];
+
+boolean identifying = false;
 
 // Current text ir code
 char irCode[MAX_IR_TEXT_CODE_LENGTH] = "";
@@ -26,9 +34,9 @@ void notFound(AsyncWebServerRequest *request)
 void onConnection(JsonDocument &input, JsonDocument &output)
 {
     output["type"] = "auth_required";
-    output["model"] = "UCD2";
-    output["revision"] = "5.4";
-    output["version"] = "0.6.0";
+    output["model"] = deviceModel;
+    output["revision"] = deviceRevision;
+    output["version"] = firmwareVersion;
 }
 
 void setDefaultResponseFields(JsonDocument &input, JsonDocument &output, int code = 200, boolean reboot = false)
@@ -303,9 +311,9 @@ void onDockMessage(JsonDocument &input, JsonDocument &output)
             setDefaultResponseFields(input, output);
             output["name"] = "UC-ESP32-IRBlaster";
             output["hostname"] = "blah.local";
-            output["model"] = "UC-ESP32-IRBlaster";
-            output["revision"] = "1.0";
-            output["version"] = "0.9.0";
+            output["model"] = deviceModel;
+            output["revision"] = deviceRevision;
+            output["version"] = firmwareVersion;
             output["serial"] = deviceSerialNo;
             output["ir_learning"] = false;
         }
@@ -316,7 +324,7 @@ void onDockMessage(JsonDocument &input, JsonDocument &output)
         }
         else if (!strcmp("identify", command))
         {
-            // DO NOTHING BUT REPLY (for now)
+            identifying = true;
             setDefaultResponseFields(input, output);
         }
         else if (!strcmp("ir_receive_on", command))
@@ -449,6 +457,17 @@ void TaskWeb(void *pvParameters)
 
     for (;;)
     {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        if(identifying) {
+            for (int i = 0; i < 20; i++) // 10 seconds (20*0.5)
+            {
+                digitalWrite(BLASTER_PIN_INDICATOR, 1);
+                vTaskDelay(250 / portTICK_PERIOD_MS);
+                digitalWrite(BLASTER_PIN_INDICATOR, 0);
+                vTaskDelay(250 / portTICK_PERIOD_MS);
+            }
+            identifying = 0;
+        } else {
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
     }
 }
