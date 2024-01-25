@@ -1,4 +1,4 @@
-# Contributing to CONTRIBUTING.md
+# Contributing to ESP32-IRBlaster-UCR2
 
 First off, thanks for taking the time to contribute! ❤️
 
