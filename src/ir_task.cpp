@@ -25,10 +25,10 @@ bool repeatCallback()
 
 void irSetup()
 {
-    pinMode(BLASTER_PIN_INDICATOR, OUTPUT);
+    //pinMode(BLASTER_PIN_INDICATOR, OUTPUT);
     pinMode(BLASTER_PIN_IR_INTERNAL, OUTPUT);
-    pinMode(BLASTER_PIN_IR_OUT_1, OUTPUT);
-    pinMode(BLASTER_PIN_IR_OUT_2, OUTPUT);
+    //pinMode(BLASTER_PIN_IR_OUT_1, OUTPUT);
+    //pinMode(BLASTER_PIN_IR_OUT_2, OUTPUT);
 
     irsend.setRepeatCallback(repeatCallback);
     irsend.begin();
@@ -72,7 +72,13 @@ void TaskSendIR(void *pvParameters)
                 {
                 case send:
                 {
-                    uint32_t ir_pin_mask = 0 | 1 << BLASTER_PIN_INDICATOR | message.ir_internal << BLASTER_PIN_IR_INTERNAL | message.ir_ext1 << BLASTER_PIN_IR_OUT_1 | message.ir_ext2 << BLASTER_PIN_IR_OUT_2;
+                    //uint32_t ir_pin_mask = 0 | 1 << BLASTER_PIN_INDICATOR | message.ir_internal << BLASTER_PIN_IR_INTERNAL | message.ir_ext1 << BLASTER_PIN_IR_OUT_1 | message.ir_ext2 << BLASTER_PIN_IR_OUT_2;
+                    uint32_t ir_pin_mask = 0;
+                    if (BLASTER_PIN_INDICATOR) ir_pin_mask |= 1 << BLASTER_PIN_INDICATOR;
+                    if (BLASTER_PIN_IR_INTERNAL) ir_pin_mask |= message.ir_internal << BLASTER_PIN_IR_INTERNAL;
+                    if (BLASTER_PIN_IR_OUT_1) ir_pin_mask |= message.ir_ext1  << BLASTER_PIN_IR_OUT_1;
+                    if (BLASTER_PIN_IR_OUT_2) ir_pin_mask |= message.ir_ext2  << BLASTER_PIN_IR_OUT_2;
+
                     irsend.setPinMask(ir_pin_mask);
                     switch (message.format)
                     {

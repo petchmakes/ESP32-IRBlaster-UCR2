@@ -12,10 +12,11 @@
 #include <ir_message.h>
 #include <ir_queue.h>
 #include <web_task.h>
+#include <global_config.h>
 
 const char *deviceModel = "PetchMakesBlaster";
 const char *deviceRevision = "1.0";
-const char *firmwareVersion = "0.9.0";
+const char *firmwareVersion = "0.9.2";
 
 char deviceSerialNo[50];
 
@@ -309,8 +310,8 @@ void onDockMessage(JsonDocument &input, JsonDocument &output)
         else if (!strcmp("get_sysinfo", command))
         {
             setDefaultResponseFields(input, output);
-            output["name"] = "UC-ESP32-IRBlaster";
-            output["hostname"] = "blah.local";
+            output["name"] = DEVICE_NAME;
+            output["hostname"] = HOSTNAME;
             output["model"] = deviceModel;
             output["revision"] = deviceRevision;
             output["version"] = firmwareVersion;
@@ -439,6 +440,7 @@ void onWSEvent(AsyncWebSocket *server,
     }
 }
 
+// Websocket server to communicate with the remote two
 void TaskWeb(void *pvParameters)
 {
     Serial.printf("TaskWeb running on core %d\n", xPortGetCoreID());

@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Unfolded Circle Remote Two custom dock</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="text/javascript" src="jquery.js"></script>
+    <script type="text/javascript" src="script.js"></script>
+  </head>
+  <body>
+    <h1><img src="uc_logo.svg" width="80px" height="80px" style="vertical-align:middle"/>&nbsp;Welcome to the configuration page of the UC custom dock</h1>
+    <table id="configuration">
+      <tr>
+        <th>Item</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td>Network adapter</td>
+        <td><div id="content-network-adapter"></div></td>
+      </tr>
+      <tr>
+        <td>Wifi IP address</td>
+        <td><div id="content-wifi-ip"></div></td>
+      </tr>
+      <tr>
+        <td>Wifi MAC address</td>
+        <td><div id="content-wifi-mac"></div></td>
+      </tr>
+      <tr>
+        <td>Ethernet IP address</td>
+        <td><div id="content-eth-ip"></div></td>
+      </tr>
+      <tr>
+        <td>Ethernet MAC address</td>
+        <td><div id="content-eth-mac"></div></td>
+      </tr>
+      <tr>
+        <td>Wifi SSID</td>
+        <td><div class="form-group">
+          <span>Wifi SSID</span>
+          <input id="input-wifi-ssid" class="form-field" type="text" placeholder="SSID">
+        </div></td>
+      </tr>
+      <tr>
+        <td>Wifi Password</td>
+        <td><div class="form-group">
+          <span>Wifi Password</span>
+          <input id="input-wifi-password" class="form-field" type="text" placeholder="Password">
+        </div></td>
+      </tr>
+      <tr><td colspan="2" align="center"><button id="save" class="button-custom" role="button" onclick="saveSettings()">Save settings</button></td></tr>
+    </table>
+  </body>
+</html>
