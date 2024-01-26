@@ -25,10 +25,10 @@ bool repeatCallback()
 
 void irSetup()
 {
-    //pinMode(BLASTER_PIN_INDICATOR, OUTPUT);
+    if (BLASTER_PIN_INDICATOR) pinMode(BLASTER_PIN_INDICATOR, OUTPUT);
     pinMode(BLASTER_PIN_IR_INTERNAL, OUTPUT);
-    //pinMode(BLASTER_PIN_IR_OUT_1, OUTPUT);
-    //pinMode(BLASTER_PIN_IR_OUT_2, OUTPUT);
+    if (BLASTER_PIN_IR_OUT_1) pinMode(BLASTER_PIN_IR_OUT_1, OUTPUT);
+    if (BLASTER_PIN_IR_OUT_2) pinMode(BLASTER_PIN_IR_OUT_2, OUTPUT);
 
     irsend.setRepeatCallback(repeatCallback);
     irsend.begin();
