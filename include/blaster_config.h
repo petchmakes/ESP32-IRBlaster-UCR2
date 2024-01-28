@@ -21,28 +21,15 @@ BLASTER_PIN_IR_OUT_2 = pin number or 0 if none for external IR Blaster 2
 #endif
 
 #ifndef BLASTER_PIN_IR_INTERNAL
-#ifdef BOARD_OLIMEX_FLAG
-// Pin association for Olimex ESP32 with IR module connected through UEXT connector
-#define BLASTER_PIN_IR_INTERNAL GPIO_NUM_4
-#else
 #define BLASTER_PIN_IR_INTERNAL 12
-#endif
 #endif
 
 #ifndef BLASTER_PIN_IR_OUT_1
-#ifdef BOARD_OLIMEX_FLAG
-#define BLASTER_PIN_IR_OUT_1 0
-#else
 #define BLASTER_PIN_IR_OUT_1 13
-#endif
 #endif
 
 #ifndef BLASTER_PIN_IR_OUT_2
-#ifdef BOARD_OLIMEX_FLAG
-#define BLASTER_PIN_IR_OUT_2 0
-#else
 #define BLASTER_PIN_IR_OUT_2 14
-#endif
 #endif
 
 #endif
