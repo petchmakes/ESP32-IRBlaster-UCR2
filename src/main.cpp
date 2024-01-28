@@ -147,12 +147,10 @@ void setup()
       phy_addr: 0
       power_pin: GPIO12
     */
-    // BUT ETH.begin() does not work properly with Olimex boards => had to change the clk_mode from GPIO17_OUT to ETH_CLOCK_GPIO0_OUT
-    // TODO : make it configurable in a header
-    ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER, ETH_PHY_MDC, ETH_PHY_MDIO, ETH_PHY_TYPE, ETH_CLOCK_GPIO0_OUT);    
+    // BUT ETH.begin() does not work properly with Olimex boards : the last parameter ETH_CLOCK_GPOUT has to be configurable according to the selected board
+    ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER, ETH_PHY_MDC, ETH_PHY_MDIO, ETH_PHY_TYPE, ETH_CLOCK_GPOUT);    
 
     // Create the queue which will have <QueueElementSize> number of elements, each of size `message_t` and pass the address to <QueueHandle>.
-    // TODO : Damien question to developer => why the queue size is limited to 2 ? the task could handle multiple IR codes in the queue sequentially ?
     irQueueHandle = xQueueCreate(IR_QUEUE_SIZE, sizeof(ir_message_t));
 
     // Check if the queue was successfully created
