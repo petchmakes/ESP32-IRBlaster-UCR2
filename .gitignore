@@ -2,3 +2,4 @@
 .vscode/*
 include/secrets.h
 kicad/*backup*/*.zip
+.idea/*
