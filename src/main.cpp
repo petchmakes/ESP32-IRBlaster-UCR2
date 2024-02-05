@@ -16,7 +16,6 @@
 #include <ir_message.h>
 #include <ir_queue.h>
 #include <ir_task.h>
-#include <secrets.h>
 #include <web_task.h>
 #include <api_service.h>
 #include <bt_service.h>
