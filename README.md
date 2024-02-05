@@ -17,7 +17,6 @@ multi-room setups.
 
 ## Getting Started
 
-1. Copy ``example-secrets.h`` to ``secrets.h`` and add the required secrets (e.g. wifi SSID and password).
 1. Add your specific board to ``platformio.ini``. Feel free to contribute this back as a pull-request. 
 1. Modify pin mappings, if required in ``blaster_config.h``.
 
@@ -35,8 +34,9 @@ In the remote web interface:
 
 1. Select *Integrations & docks*
 1. Under *Docks* click *+*
-1. Select *Manual setup*
-1. Specify *Name* and *ip address or hostname*
+1. Click on *Discover Docks*
+1. Dock should be recognized either via Bluetooth or via WiFi
+1. If Bluetooth, you have to specify Wifi settings.
 1. Click *Next*
 1. The blaster should be added as a new dock. If there were issues, then download the recent log files in
 *Settings* / *Development* / *Logs*. There should be a reason for any failures logged by the remote.
