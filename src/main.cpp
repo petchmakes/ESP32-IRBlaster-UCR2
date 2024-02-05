@@ -10,30 +10,60 @@
 #include <string.h>
 #include <IRsend.h>
 
+#include <libconfig.h>
+#include <mdns_service.h>
 #include <blaster_config.h>
 #include <ir_message.h>
 #include <ir_queue.h>
 #include <ir_task.h>
 #include <secrets.h>
 #include <web_task.h>
+#include <api_service.h>
+#include <bt_service.h>
+#include <bt_task.h>
 
 QueueHandle_t irQueueHandle;
+
+Config* config;
+MDNSService* myMdns;
+
+
+char deviceSerialNo[20] = { 0 };
+char wifihostname[50] = { 0 };
+
 
 void setup()
 {
     Serial.begin(115200);
 
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(wifi_ssid, wifi_password);
-    if (WiFi.waitForConnectResult() != WL_CONNECTED)
-    {
-        Serial.printf("WiFi Failed!\n");
-        return;
+    config = new Config();
+    myMdns = new MDNSService();
+
+    bool has_wifi=false;
+
+    if (config->getWifiSsid() != "") {
+        Serial.println(F("SSID found, connecting..."));
+        WiFi.enableSTA(true);
+        WiFi.mode(WIFI_STA);
+        WiFi.setSleep(false);
+        Serial.print("Setting Wifi Hostname: ");
+        strcpy(wifihostname, config->getHostName().c_str());
+        Serial.println(wifihostname);
+        WiFi.setHostname(wifihostname);
+        WiFi.begin(config->getWifiSsid().c_str(), config->getWifiPassword().c_str());
+        if (WiFi.waitForConnectResult() != WL_CONNECTED)
+        {
+            Serial.printf("Starting WiFi Failed!\n");
+            return;
+        }
+        Serial.printf("IP Address: %s\n", WiFi.localIP().toString());
+        has_wifi = true;
+
+    } else {
+        Serial.println(F("Booting without Wifi. SSID not found in config."));
     }
 
-    Serial.printf("IP Address: %s\n", WiFi.localIP().toString());
 
-    char deviceSerialNo[18] = { 0 };
     strcpy(deviceSerialNo, WiFi.macAddress().c_str());
     Serial.printf("MAC address: %s\n", deviceSerialNo);
 
@@ -47,17 +77,28 @@ void setup()
         while (1)
             delay(1000); // Halt at this point as is not possible to continue
     }
+    if (has_wifi){
 
-    // Set up two tasks to run independently.
-    const BaseType_t  webTaskHandle = xTaskCreatePinnedToCore(
-        TaskWeb, "Task Web/Websocket server",
-        32768, deviceSerialNo, 2, NULL, 0
-    );
+        // Set up two tasks to run independently.
+        const BaseType_t  webTaskHandle = xTaskCreatePinnedToCore(
+            TaskWeb, "Task Web/Websocket server",
+            32768, deviceSerialNo, 2, NULL, 0
+        );
+        const BaseType_t irTaskHandle = xTaskCreatePinnedToCore(
+            TaskSendIR, "Task IR send task",
+            32768, NULL, 3 /* highest priority */, NULL, 1
+        );
 
-    const BaseType_t irTaskHandle = xTaskCreatePinnedToCore(
-        TaskSendIR, "Task IR send task",
-        32768, NULL, 3 /* highest priority */, NULL, 1
-    );
+    } else {
+
+        const BaseType_t  btTaskHandle = xTaskCreatePinnedToCore(
+            TaskBT, "Task Bluetooth",
+            32768, deviceSerialNo, 2, NULL, 0
+        );
+
+    }
+
+
 }
 
 void loop()

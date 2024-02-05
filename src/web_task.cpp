@@ -12,12 +12,14 @@
 #include <ir_message.h>
 #include <ir_queue.h>
 #include <web_task.h>
+#include <mdns_service.h>
+#include <api_service.h>
 
 const char *deviceModel = "PetchMakesBlaster";
 const char *deviceRevision = "1.0";
 const char *firmwareVersion = "0.9.0";
 
-char deviceSerialNo[50];
+char deviceSerialNoXX[50];
 
 boolean identifying = false;
 
@@ -45,7 +47,7 @@ void setDefaultResponseFields(JsonDocument &input, JsonDocument &output, int cod
     output["req_id"] = input["id"];
     output["msg"] = input["command"];
     output["code"] = code;
-    output["reboot"] = false;
+    output["reboot"] = reboot;
 }
 
 void buildProntoMessage(ir_message_t &message)
@@ -190,7 +192,10 @@ void buildHexMessage(ir_message_t &message)
 
 void queueIRMessage(ir_message_t &message)
 {
-    if (irQueueHandle != NULL)
+    //do nothing during testing
+
+
+     if (irQueueHandle != NULL)
     {
         int ret = xQueueSend(irQueueHandle, (void *)&message, 0);
         if (ret == pdTRUE)
@@ -207,6 +212,7 @@ void queueIRMessage(ir_message_t &message)
     {
         Serial.println("The `TaskWeb` was unable to send message to IR Queue; no queue defined");
     }
+
 }
 
 void queueIR(JsonDocument &input, JsonDocument &output)
@@ -314,13 +320,15 @@ void onDockMessage(JsonDocument &input, JsonDocument &output)
             output["model"] = deviceModel;
             output["revision"] = deviceRevision;
             output["version"] = firmwareVersion;
-            output["serial"] = deviceSerialNo;
+            output["serial"] = "0042"; //static rewrite until it works
             output["ir_learning"] = false;
         }
         else if (!strcmp("set_config", command))
         {
             // DO NOTHING BUT REPLY (for now)
             setDefaultResponseFields(input, output);
+            processSetConfig(input, output);
+
         }
         else if (!strcmp("identify", command))
         {
@@ -355,12 +363,18 @@ void onDockMessage(JsonDocument &input, JsonDocument &output)
         else if (!strcmp("reboot", command))
         {
             setDefaultResponseFields(input, output, 200, true);
-            ESP.restart();
+            //done below
+            //ESP.restart();
         }
         else if (!strcmp("reset", command))
         {
             // DO NOTHING BUT REPLY (for now)
-            setDefaultResponseFields(input, output);
+            setDefaultResponseFields(input, output, 200, true);
+            Config::getInstance()->reset();
+            //done below
+            //ESP.restart();
+
+
         }
         else if (!strcmp("set_brightness", command))
         {
@@ -436,14 +450,21 @@ void onWSEvent(AsyncWebSocket *server,
         serializeJson(output, buf->get(), len);
         Serial.printf("Raw json response %.*s\n", len, buf->get());
         client->text(buf);
+        if(output["reboot"].as<boolean>()){
+            Serial.println(F("Rebooting..."));
+            delay(1000);
+            ESP.restart();
+        }
     }
 }
+
+
 
 void TaskWeb(void *pvParameters)
 {
     Serial.printf("TaskWeb running on core %d\n", xPortGetCoreID());
-    Serial.printf("Serial number %s\n", pvParameters);
-    strcpy(deviceSerialNo, (const char *) pvParameters);
+    strcpy(deviceSerialNoXX, (const char *) pvParameters);
+    Serial.printf("Serial number %s\n", deviceSerialNoXX);
 
     AsyncWebServer server(946);
     AsyncWebSocket ws("/");
@@ -457,6 +478,7 @@ void TaskWeb(void *pvParameters)
 
     for (;;)
     {
+        MDNSService::getInstance()->loop();
         if(identifying) {
             for (int i = 0; i < 20; i++) // 10 seconds (20*0.5)
             {
@@ -469,5 +491,6 @@ void TaskWeb(void *pvParameters)
         } else {
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
+        
     }
 }
