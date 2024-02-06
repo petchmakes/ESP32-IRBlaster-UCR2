@@ -1,29 +1,15 @@
 
 
 #include "api_service.h"
+#include <mdns_service.h>
 
 
 
-/* this needs to go to the config service in future */
-//const char *deviceModel2 = "KoeBlaster"; //original was UCD2
-const char *deviceModel2 = "UCD2"; //original was UCD2
-const char *deviceRevision2 = "1.0";
-const char *firmwareVersion2 = "0.9.0";
 
-//char deviceSerialNo[50];
-const char *deviceSerialNo2 = "0042"; //actually this is generated in main from mac address
 
-/*
-void setDefaultResponseFields(JsonDocument &input, JsonDocument &output){
-    setDefaultResponseFields(input, output, 200, false);
-}
 
-void setDefaultResponseFields(JsonDocument &input, JsonDocument &output, int code){
-    setDefaultResponseFields(input, output, code, false);
-}*/
 
-void fillDefaultResponseFields(JsonDocument &input, JsonDocument &output, int code=200, boolean reboot=false)
-{
+void fillDefaultResponseFields(JsonDocument &input, JsonDocument &output, int code, boolean reboot){
     output["type"] = input["type"];
     output["req_id"] = input["id"];
     output["msg"] = input["command"];
@@ -31,15 +17,22 @@ void fillDefaultResponseFields(JsonDocument &input, JsonDocument &output, int co
     output["reboot"] = reboot;
 }
 
+void buildConnectionResponse(JsonDocument &input, JsonDocument &output){
+    output["type"] = "auth_required";
+    output["model"] = Config::getInstance()->getDeviceModel();
+    output["revision"] = Config::getInstance()->getHWRevision();
+    output["version"] = Config::getInstance()->getFWVersion();
+}
 
 void buildSysinfoResponse(JsonDocument &input, JsonDocument &output){
-    output["name"] = "UC-ESP32-IRBlaster";
-    output["hostname"] = "blah.local";
-    output["model"] = deviceModel2;
-    output["revision"] = deviceRevision2;
-    output["version"] = firmwareVersion2;
-    output["serial"] = deviceSerialNo2;
-    output["ir_learning"] = false;
+    output["name"] = Config::getInstance()->getFriendlyName();
+    output["hostname"] = Config::getInstance()->getHostName();
+    output["model"] = Config::getInstance()->getDeviceModel();
+    output["revision"] = Config::getInstance()->getHWRevision();
+    output["version"] = Config::getInstance()->getFWVersion();
+    output["serial"] = Config::getInstance()->getSerial();
+    output["ir_learning"] = Config::getInstance()->getIRLearning();
+    
 }
 
 void processSetConfig(JsonDocument &input, JsonDocument &output){
@@ -57,13 +50,25 @@ void processSetConfig(JsonDocument &input, JsonDocument &output){
     }
     if (input.containsKey("friendly_name")){
         String friendlyname = input["friendly_name"].as<String>();
+        if(friendlyname != Config::getInstance()->getFriendlyName() ){
+            //friendlyname has changed. update conf
+            Serial.printf("Updating FriendlyName to %s\n", friendlyname.c_str());
+            Config::getInstance()->setFriendlyName(friendlyname);
+            //inform other subsystems about the change (e.g., mdns, ...)
+            MDNSService::getInstance()->restartService();
+        }
 
-        Config::getInstance()->setFriendlyName(friendlyname);
     }
     if (input.containsKey("token")){
-        //ignore for now.
-        //String token = input["token"].as<String>();
-        //Config::getInstance()->setToken(token);
+        //not sure about the effects of setting a token
+        String token = input["token"].as<String>();
+        if(strlen(token.c_str())>=4 && strlen(token.c_str())<=40){
+            Config::getInstance()->setToken(token);
+        } else {
+            //TODO: what happens if token is wrong everything els is ok?
+
+            output["code"] = 400;
+        }
     }
     // if(reboot){
     //     //use a central state manager in future

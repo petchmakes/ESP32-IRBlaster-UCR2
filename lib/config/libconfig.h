@@ -36,25 +36,39 @@ public:
     String      getToken();
     void        setToken(String value);
 
-    // get hostname
     String      getHostName();
+    
+    String      getSerial();
+
+    const boolean getIRLearning() { return irlearning; }
+
+    const String getHWRevision() { return hwrevision; }
+
+    const String getFWVersion() { return fwversion; }
+
+    const String getDeviceModel() { return devicemodel; }
 
     // reset config to defaults
     void        reset();
 
-    static Config*           getInstance()
-    { return s_instance; }
+    static Config*           getInstance() { return s_instance; }
 
-    int             OTA_port = 80;
-    int             API_port = 946;
-    const String    token = "0";
+    //OTA Port currently not announced by original dock
+    //int             OTA_port = 80;
+    const int       API_port = 946;
 
 private:
-    Preferences     m_preferences;
-    int             m_defaultLedBrightness = 50;
-    String m_hostname;
+    Preferences  m_preferences;
 
-    static Config*  s_instance;
+    const int    m_defaultLedBrightness = 75;
+    
+    const String hwrevision = "0.1";
+    const String fwversion = "0.1.0";
+    const String devicemodel = "KoeBlaster";
+
+    const boolean irlearning = false;
+
+    static Config* s_instance;
 };
 
 #endif
