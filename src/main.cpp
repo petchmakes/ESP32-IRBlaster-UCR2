@@ -41,7 +41,7 @@ void setup()
     bool has_wifi=false;
 
     if (config->getWifiSsid() != "") {
-        Serial.println(F("SSID found, connecting..."));
+        Serial.println(F("SSID present in config."));
         WiFi.enableSTA(true);
         WiFi.mode(WIFI_STA);
         WiFi.setSleep(false);
@@ -49,15 +49,19 @@ void setup()
         strcpy(wifihostname, config->getHostName().c_str());
         Serial.println(wifihostname);
         WiFi.setHostname(wifihostname);
-        WiFi.begin(config->getWifiSsid().c_str(), config->getWifiPassword().c_str());
-        if (WiFi.waitForConnectResult() != WL_CONNECTED)
-        {
-            Serial.printf("Starting WiFi Failed!\n");
-            return;
-        }
-        Serial.printf("IP Address: %s\n", WiFi.localIP().toString());
-        has_wifi = true;
 
+        Serial.println(F("Connecting to Wifi ..."));
+        WiFi.begin(config->getWifiSsid().c_str(), config->getWifiPassword().c_str());
+        //try to connect to wifi for 30 secs, otherwise fall back to bluetooth.
+        if (WiFi.waitForConnectResult(30000) != WL_CONNECTED){
+            Serial.printf("Starting WiFi Failed! Falling back to Bluetooth discovery.\n");
+            //turn off wifi! nasty aborts will happen when accessing bluetooth if you don't.
+            WiFi.mode(WIFI_OFF);
+            delay(500);
+        } else {
+            Serial.printf("IP Address: %s\n", WiFi.localIP().toString());
+            has_wifi = true;
+        }
     } else {
         Serial.println(F("Booting without Wifi. SSID not found in config."));
     }
@@ -66,17 +70,18 @@ void setup()
     strcpy(deviceSerialNo, WiFi.macAddress().c_str());
     Serial.printf("MAC address: %s\n", deviceSerialNo);
 
-    // Create the queue which will have <QueueElementSize> number of elements, each of size `message_t` and pass the address to <QueueHandle>.
-    irQueueHandle = xQueueCreate(IR_QUEUE_SIZE, sizeof(ir_message_t));
-
-    // Check if the queue was successfully created
-    if (irQueueHandle == NULL)
-    {
-        Serial.println("Queue could not be created. Halt.");
-        while (1)
-            delay(1000); // Halt at this point as is not possible to continue
-    }
     if (has_wifi){
+
+        // Create the queue which will have <QueueElementSize> number of elements, each of size `message_t` and pass the address to <QueueHandle>.
+        irQueueHandle = xQueueCreate(IR_QUEUE_SIZE, sizeof(ir_message_t));
+
+        // Check if the queue was successfully created
+        if (irQueueHandle == NULL)
+        {
+            Serial.println("Queue could not be created. Halt.");
+            while (1)
+                delay(1000); // Halt at this point as is not possible to continue
+        }
 
         // Set up two tasks to run independently.
         const BaseType_t  webTaskHandle = xTaskCreatePinnedToCore(
@@ -92,7 +97,7 @@ void setup()
 
         const BaseType_t  btTaskHandle = xTaskCreatePinnedToCore(
             TaskBT, "Task Bluetooth",
-            32768, deviceSerialNo, 2, NULL, 0
+            32768, NULL, 2, NULL, 0
         );
 
     }

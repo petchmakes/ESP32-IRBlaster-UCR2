@@ -70,7 +70,8 @@ void Config::setFriendlyName(String value)
 String Config::getToken()
 {
     m_preferences.begin("general", false);
-    String token = m_preferences.getString("token", "");
+    //default password is 0000
+    String token = m_preferences.getString("token", "0000");
     m_preferences.end();
 
     return token;
@@ -120,12 +121,23 @@ void Config::setWifiPassword(String value)
 // get hostname
 String Config::getHostName()
 {
-    char hostName[] = "UC-Dock-X-xx-xx-xx-xx-xx-xx";
+    static char hostName[] = "UC-Dock-X-xxxxxxxxxxxx";
     uint8_t wifiMac[6];
     esp_read_mac(wifiMac, ESP_MAC_WIFI_STA);
-    sprintf(hostName, "UC-Dock-X-%02X-%02X-%02X-%02X-%02X-%02X", wifiMac[0], wifiMac[1], wifiMac[2], wifiMac[3], wifiMac[4], wifiMac[5]);
+    sprintf(hostName, "UC-Dock-X-%02X%02X%02X%02X%02X%02X", wifiMac[0], wifiMac[1], wifiMac[2], wifiMac[3], wifiMac[4], wifiMac[5]);
     return hostName;
 }
+
+// get serial
+String Config::getSerial()
+{
+    static char serial[] = "xxxxxxxxxxxx";
+    uint8_t wifiMac[6];
+    esp_read_mac(wifiMac, ESP_MAC_WIFI_STA);
+    sprintf(serial, "%02X%02X%02X%02X%02X%02X", wifiMac[0], wifiMac[1], wifiMac[2], wifiMac[3], wifiMac[4], wifiMac[5]);
+    return serial;
+}
+
 
 // reset config to defaults
 void Config::reset()

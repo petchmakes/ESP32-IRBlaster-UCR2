@@ -15,11 +15,10 @@
 #include <mdns_service.h>
 #include <api_service.h>
 
-const char *deviceModel = "PetchMakesBlaster";
-const char *deviceRevision = "1.0";
-const char *firmwareVersion = "0.9.0";
+#include <libconfig.h>
+#include <api_service.h>
 
-char deviceSerialNoXX[50];
+
 
 boolean identifying = false;
 
@@ -33,22 +32,6 @@ void notFound(AsyncWebServerRequest *request)
     request->send(404, "text/plain", "Not found");
 }
 
-void onConnection(JsonDocument &input, JsonDocument &output)
-{
-    output["type"] = "auth_required";
-    output["model"] = deviceModel;
-    output["revision"] = deviceRevision;
-    output["version"] = firmwareVersion;
-}
-
-void setDefaultResponseFields(JsonDocument &input, JsonDocument &output, int code = 200, boolean reboot = false)
-{
-    output["type"] = input["type"];
-    output["req_id"] = input["id"];
-    output["msg"] = input["command"];
-    output["code"] = code;
-    output["reboot"] = reboot;
-}
 
 void buildProntoMessage(ir_message_t &message)
 {
@@ -237,7 +220,7 @@ void queueIR(JsonDocument &input, JsonDocument &output)
         if(irCode[0] && (strcmp(newCode, irCode) == 0) && (strcmp(newFormat, irFormat) == 0))
         {
             // Same message. send repeat command
-            setDefaultResponseFields(input, output, 202);
+            fillDefaultResponseFields(input, output, 202);
             message.action = repeat;
             queueIRMessage(message);
             return;
@@ -245,7 +228,7 @@ void queueIR(JsonDocument &input, JsonDocument &output)
         else
         {
             // Different message - reject
-            setDefaultResponseFields(input, output, 429);
+            fillDefaultResponseFields(input, output, 429);
             return;
         }
     }
@@ -253,14 +236,14 @@ void queueIR(JsonDocument &input, JsonDocument &output)
     if (strlen(newCode) > sizeof(irCode))
     {
         Serial.printf("Length of sent code is longer than allocated buffer. Length = %d; Max = %s\n", strlen(newCode), sizeof(irCode));
-        setDefaultResponseFields(input, output, 400);
+        fillDefaultResponseFields(input, output, 400);
         return;
     }
 
     if (strlen(newFormat) > sizeof(irFormat))
     {
         Serial.printf("Length of sent format is longer than allocated buffer. Length = %d; Max = %s\n", strlen(newFormat), sizeof(irFormat));
-        setDefaultResponseFields(input, output, 400);
+        fillDefaultResponseFields(input, output, 400);
         return;
     }
 
@@ -271,18 +254,18 @@ void queueIR(JsonDocument &input, JsonDocument &output)
     {
         buildHexMessage(message);
         queueIRMessage(message);
-        setDefaultResponseFields(input, output);
+        fillDefaultResponseFields(input, output);
     }
     else if (strcmp("pronto", newFormat) == 0)
     {
         buildProntoMessage(message);
         queueIRMessage(message);
-        setDefaultResponseFields(input, output);
+        fillDefaultResponseFields(input, output);
     }
     else
     {
         Serial.printf("Unknown ir format %s\n", newFormat);
-        setDefaultResponseFields(input, output, 400);
+        fillDefaultResponseFields(input, output, 400);
         irCode[0] = 0;
         irFormat[0] = 0;
     }
@@ -294,7 +277,7 @@ void stopIR(JsonDocument &input, JsonDocument &output)
     message.action = stop;
 
     queueIRMessage(message);
-    setDefaultResponseFields(input, output);
+    fillDefaultResponseFields(input, output);
 }
 
 void onDockMessage(JsonDocument &input, JsonDocument &output)
@@ -314,95 +297,95 @@ void onDockMessage(JsonDocument &input, JsonDocument &output)
         }
         else if (!strcmp("get_sysinfo", command))
         {
-            setDefaultResponseFields(input, output);
-            output["name"] = "UC-ESP32-IRBlaster";
-            output["hostname"] = "blah.local";
-            output["model"] = deviceModel;
-            output["revision"] = deviceRevision;
-            output["version"] = firmwareVersion;
-            output["serial"] = "0042"; //static rewrite until it works
-            output["ir_learning"] = false;
+            fillDefaultResponseFields(input, output);
+            buildSysinfoResponse(input, output);
         }
         else if (!strcmp("set_config", command))
         {
-            // DO NOTHING BUT REPLY (for now)
-            setDefaultResponseFields(input, output);
+            fillDefaultResponseFields(input, output);
             processSetConfig(input, output);
-
         }
         else if (!strcmp("identify", command))
         {
             identifying = true;
-            setDefaultResponseFields(input, output);
+            fillDefaultResponseFields(input, output);
         }
         else if (!strcmp("ir_receive_on", command))
         {
             // DO NOTHING BUT REPLY (for now)
-            setDefaultResponseFields(input, output);
+            fillDefaultResponseFields(input, output);
         }
         else if (!strcmp("ir_receive_off", command))
         {
             // DO NOTHING BUT REPLY (for now)
-            setDefaultResponseFields(input, output);
+            fillDefaultResponseFields(input, output);
         }
         else if (!strcmp("remote_charged", command))
         {
             // DO NOTHING BUT REPLY (for now)
-            setDefaultResponseFields(input, output);
+            fillDefaultResponseFields(input, output);
         }
         else if (!strcmp("remote_lowbattery", command))
         {
             // DO NOTHING BUT REPLY (for now)
-            setDefaultResponseFields(input, output);
+            fillDefaultResponseFields(input, output);
         }
         else if (!strcmp("remote_normal", command))
         {
             // DO NOTHING BUT REPLY (for now)
-            setDefaultResponseFields(input, output);
+            fillDefaultResponseFields(input, output);
         }
         else if (!strcmp("reboot", command))
         {
-            setDefaultResponseFields(input, output, 200, true);
-            //done below
-            //ESP.restart();
+            fillDefaultResponseFields(input, output, 200, true);
+            //reboot is done below after sending response
         }
         else if (!strcmp("reset", command))
         {
-            // DO NOTHING BUT REPLY (for now)
-            setDefaultResponseFields(input, output, 200, true);
+            fillDefaultResponseFields(input, output, 200, true);
             Config::getInstance()->reset();
-            //done below
-            //ESP.restart();
-
-
+            //reboot is done below after sending response
         }
         else if (!strcmp("set_brightness", command))
         {
             // DO NOTHING BUT REPLY (for now)
-            setDefaultResponseFields(input, output);
+            fillDefaultResponseFields(input, output);
         }
         else if (!strcmp("set_logging", command))
         {
             // DO NOTHING BUT REPLY (for now)
-            setDefaultResponseFields(input, output);
+            fillDefaultResponseFields(input, output);
         }
         else
         {
             Serial.printf("Unknown command %s\n", command);
-            setDefaultResponseFields(input, output, 400);
+            fillDefaultResponseFields(input, output, 400);
         }
     }
     else if (!strcmp("auth", type))
     {
         Serial.printf("Received auth message type\n");
+
         output["type"] = input["type"];
         output["msg"] = "authentication";
-        output["code"] = 200;
+
+        //check if the auth token matches our expected one
+        String token = input["token"].as<String>();
+        if(token == Config::getInstance()->getToken()){
+            //auth successful
+            Serial.printf("Authentification successful\n");
+            output["code"] = 200;
+        } else {
+            //auth failed - problem when trying to bind a previously configured dock with non-standard password!
+            Serial.printf("Authentification failed\n");
+            //output["code"] = 401;
+            output["code"] = 200;
+        }
     }
     else
     {
         Serial.printf("Unknown type %s\n", type);
-        setDefaultResponseFields(input, output, 400);
+        fillDefaultResponseFields(input, output, 400);
     }
 }
 
@@ -420,7 +403,7 @@ void onWSEvent(AsyncWebSocket *server,
     case WS_EVT_CONNECT:
         Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
         client->keepAlivePeriod(1);
-        onConnection(input, output);
+        buildConnectionResponse(input, output);
         break;
     case WS_EVT_DISCONNECT:
         Serial.printf("WebSocket client #%u disconnected\n", client->id());
@@ -437,6 +420,7 @@ void onWSEvent(AsyncWebSocket *server,
             Serial.print("WebSocket no JSON document sent\n");
         }
     case WS_EVT_PONG:
+        Serial.print("WebSocket Event PONG\n");
         break;
     case WS_EVT_ERROR:
         Serial.printf("WebSocket client #%u error #%u: %s\n", client->id(), *((uint16_t*)arg), (char*)data);
@@ -450,9 +434,18 @@ void onWSEvent(AsyncWebSocket *server,
         serializeJson(output, buf->get(), len);
         Serial.printf("Raw json response %.*s\n", len, buf->get());
         client->text(buf);
+
+        //check if we have to close the ws connection (failed auth)
+        String responseMsg = output["msg"].as<String>();
+        int responseCode = output["code"].as<int>();
+        if((responseMsg == "authentication") && (responseCode == 401)){
+            //client ->close();
+        }
+        
+        //check if we have to reboot
         if(output["reboot"].as<boolean>()){
             Serial.println(F("Rebooting..."));
-            delay(1000);
+            delay(500);
             ESP.restart();
         }
     }
@@ -463,10 +456,8 @@ void onWSEvent(AsyncWebSocket *server,
 void TaskWeb(void *pvParameters)
 {
     Serial.printf("TaskWeb running on core %d\n", xPortGetCoreID());
-    strcpy(deviceSerialNoXX, (const char *) pvParameters);
-    Serial.printf("Serial number %s\n", deviceSerialNoXX);
 
-    AsyncWebServer server(946);
+    AsyncWebServer server(Config::getInstance()->API_port);
     AsyncWebSocket ws("/");
 
     // server.

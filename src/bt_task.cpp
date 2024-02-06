@@ -17,5 +17,6 @@ void TaskBT(void *pvParameters)
     for (;;)
     {
         btService->handle();
+        //TODO: blink the led in the discovery pattern!
     }
 }
