@@ -1,13 +1,12 @@
+// Copyright by Alex Koessler
+
+// This file was created using information and code from:
+// https://github.com/YIO-Remote/dock-software
+
+// Provides bluetooth service for initial configuration of dock without Wifi.
+
 #ifndef BT_SERVICE_H
 #define BT_SERVICE_H
-
-/*
-
-This file was created using information and code snippets from:
-
-https://github.com/YIO-Remote/dock-software
-
-*/
 
 #include <Arduino.h>
 
@@ -26,26 +25,20 @@ public:
     explicit BluetoothService();
     virtual ~BluetoothService() {}
 
-    static BluetoothService* getInstance() { return s_instance; } 
+    static BluetoothService *getInstance() { return s_instance; }
 
     void init();
     void handle();
     void sendCallback(JsonDocument responseJson);
 
-
 private:
-    static BluetoothService* s_instance;
+    static BluetoothService *s_instance;
 
-    BluetoothSerial* btSerial = new BluetoothSerial();
-//    State*                        m_state = State::getInstance();
-    Config*                       m_config = Config::getInstance();
-   // API*                          m_api; 
+    BluetoothSerial *btSerial = new BluetoothSerial();
+    Config *m_config = Config::getInstance();
 
     String m_receivedData = "";
     bool m_interestingData = false;
 };
-
-
-
 
 #endif

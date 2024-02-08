@@ -1,4 +1,5 @@
 // Copyright 2024 Craig Petchell
+// Contributions by Alex Koessler
 
 #include <freertos/FreeRTOS.h>
 #include <Arduino.h>
