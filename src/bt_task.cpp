@@ -1,3 +1,4 @@
+// Copyright 2024 Alex Koessler
 
 #include <freertos/FreeRTOS.h>
 #include <Arduino.h>

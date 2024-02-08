@@ -1,15 +1,15 @@
+// Copyright by Alex Koessler
 
-/* 
-file based on yio repo
-https://github.com/YIO-Remote/dock-software/blob/master/lib/config/config.cpp
+// file based on archived yio repo
+// https://github.com/YIO-Remote/dock-software/tree/master/lib/config
 
- */
+// Provides configuration service that persisting dock settings.
 
 #include "libconfig.h"
 #include <Arduino.h>
 #include <WiFi.h>
 
-Config* Config::s_instance = nullptr;
+Config *Config::s_instance = nullptr;
 
 // initializing config
 Config::Config()
@@ -19,7 +19,7 @@ Config::Config()
     // if no LED brightness setting, set default
     if (getLedBrightness() == 0)
     {
-        Serial.println("[CONFIG] Setting default brightness");
+        Serial.println("Setting default brightness");
         setLedBrightness(m_defaultLedBrightness);
     }
 
@@ -27,7 +27,7 @@ Config::Config()
     if (getFriendlyName() == "")
     {
         // get the default friendly name
-        Serial.println("[CONFIG] Setting default friendly name");
+        Serial.println("Setting default friendly name");
         setFriendlyName(getHostName());
     }
 }
@@ -38,7 +38,7 @@ int Config::getLedBrightness()
     m_preferences.begin("general", false);
     int led_brightness = m_preferences.getInt("brightness", 0);
     m_preferences.end();
-    
+
     return led_brightness;
 }
 
@@ -70,7 +70,7 @@ void Config::setFriendlyName(String value)
 String Config::getToken()
 {
     m_preferences.begin("general", false);
-    //default password is 0000
+    // default password is 0000
     String token = m_preferences.getString("token", "0000");
     m_preferences.end();
 
@@ -83,7 +83,6 @@ void Config::setToken(String value)
     m_preferences.putString("token", value);
     m_preferences.end();
 }
-
 
 // getter and setter for wifi credentials
 String Config::getWifiSsid()
@@ -138,38 +137,37 @@ String Config::getSerial()
     return serial;
 }
 
-
 // reset config to defaults
 void Config::reset()
 {
-    Serial.println("[CONFIG] Resetting configuration.");
+    Serial.println("Resetting stored configuration.");
 
-    Serial.println("[CONFIG] Resetting general.");
+    Serial.println("Resetting general config.");
     m_preferences.begin("general", false);
     m_preferences.clear();
     m_preferences.end();
 
-    Serial.println("[CONFIG] Resetting general done.");
+    Serial.println("Resetting general config done.");
 
     delay(500);
 
-    Serial.println("[CONFIG] Resetting wifi.");
+    Serial.println("Resetting wifi settings.");
     m_preferences.begin("wifi", false);
     m_preferences.clear();
     m_preferences.end();
 
-    Serial.println("[CONFIG] Resetting wifi done.");
+    Serial.println("Resetting wifi settings done.");
 
     delay(500);
 
-    Serial.println("[CONFIG] Erasing flash.");
+    Serial.println("Erasing flash.");
     int err;
     err = nvs_flash_init();
-    Serial.println("[CONFIG] nvs_flash_init: " + err);
+    Serial.println("nvs_flash_init: " + err);
     err = nvs_flash_erase();
-    Serial.println("[CONFIG] nvs_flash_erase: " + err);
+    Serial.println("nvs_flash_erase: " + err);
 
     delay(500);
-    
-    //ESP.restart();
+
+    // Take care of ESP reset after sending response!
 }

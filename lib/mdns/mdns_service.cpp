@@ -1,9 +1,10 @@
+// Copyright by Alex Koessler
 
-/*
-based on file from 
-https://github.com/YIO-Remote/dock-software/blob/master/lib/service_mdns/service_mdns.cpp
+// file based on archived yio repo
+// https://github.com/YIO-Remote/dock-software/tree/master/lib/service_mdns
 
-*/
+// Provides mDNS Service that announces the dock to remotes in the same network.
+
 
 #include "mdns_service.h"
 
@@ -42,8 +43,9 @@ void MDNSService::startService(){
     MDNS.addServiceTxt("_uc-dock", "_tcp", "model", m_config->getDeviceModel());
     MDNS.addServiceTxt("_uc-dock", "_tcp", "ver", m_config->getFWVersion());
     MDNS.addServiceTxt("_uc-dock", "_tcp", "name", m_config->getFriendlyName());
-    //not used any more?
+    //available in archived repo but not used in v2 any more?
     //MDNS.addService("_uc-dock-ota", "_tcp", m_config->OTA_port);
+
     Serial.println(F("mDNS services updated"));
      
 }

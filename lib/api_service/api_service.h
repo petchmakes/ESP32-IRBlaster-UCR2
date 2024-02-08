@@ -1,3 +1,7 @@
+// Copyright by Alex Koessler
+
+// Provides API decoding service for initial setup of dock via bluetooth.
+
 #ifndef API_SERVICE_H
 #define API_SERVICE_H
 
@@ -6,12 +10,14 @@
 
 #include <libconfig.h>
 
-
 void processData(JsonDocument &request, int id, String source, void (*sendCallback)(JsonDocument));
-void fillDefaultResponseFields(JsonDocument &input, JsonDocument &output, int code=200, boolean reboot=false);
-void processSetConfig(JsonDocument &input, JsonDocument &output);
-void buildSysinfoResponse(JsonDocument &input, JsonDocument &output);
-void buildConnectionResponse(JsonDocument &input, JsonDocument &output);
 
+void fillDefaultResponseFields(JsonDocument &input, JsonDocument &output, int code = 200, boolean reboot = false);
+
+void processSetConfig(JsonDocument &input, JsonDocument &output);
+
+void buildSysinfoResponse(JsonDocument &input, JsonDocument &output);
+
+void buildConnectionResponse(JsonDocument &input, JsonDocument &output);
 
 #endif
