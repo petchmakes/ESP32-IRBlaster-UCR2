@@ -1,6 +1,6 @@
 // Copyright by Alex Koessler
 
-// Provides API decoding service for initial setup of dock via bluetooth.
+// Provides API decoding service for communication with dock via bluetooth and wifi.
 
 #ifndef API_SERVICE_H
 #define API_SERVICE_H
@@ -8,16 +8,15 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
-#include <libconfig.h>
 
-void processData(JsonDocument &request, int id, String source, void (*sendCallback)(JsonDocument));
 
-void fillDefaultResponseFields(JsonDocument &input, JsonDocument &output, int code = 200, boolean reboot = false);
 
-void processSetConfig(JsonDocument &input, JsonDocument &output);
+void api_processData(JsonDocument &request, JsonDocument &response);
 
-void buildSysinfoResponse(JsonDocument &input, JsonDocument &output);
+void api_fillDefaultResponseFields(JsonDocument &input, JsonDocument &output, int code = 200, boolean reboot = false);
 
-void buildConnectionResponse(JsonDocument &input, JsonDocument &output);
+void api_buildSysinfoResponse(JsonDocument &input, JsonDocument &output);
+
+void api_buildConnectionResponse(JsonDocument &input, JsonDocument &output);
 
 #endif

@@ -1,20 +1,32 @@
 // Copyright by Alex Koessler
 
-// Provides API decoding service for initial setup of dock via bluetooth.
+// Provides API decoding service for communication with dock via bluetooth and wifi.
 
-#include "api_service.h"
+#include <api_service.h>
+#include <ir_service.h>
 #include <mdns_service.h>
+#include <libconfig.h>
 
-void fillDefaultResponseFields(JsonDocument &input, JsonDocument &output, int code, boolean reboot)
-{
+
+void api_fillTypeIDCommand(JsonDocument &input, JsonDocument &output){
     output["type"] = input["type"];
-    output["req_id"] = input["id"];
-    output["msg"] = input["command"];
+    if(input.containsKey("id")){
+        output["req_id"] = input["id"];
+    }
+    if(input.containsKey("command")){
+        output["msg"] = input["command"];
+    }
+
+}
+
+void api_fillDefaultResponseFields(JsonDocument &input, JsonDocument &output, int code, boolean reboot)
+{
+    api_fillTypeIDCommand(input, output);
     output["code"] = code;
     output["reboot"] = reboot;
 }
 
-void buildConnectionResponse(JsonDocument &input, JsonDocument &output)
+void api_buildConnectionResponse(JsonDocument &input, JsonDocument &output)
 {
     output["type"] = "auth_required";
     output["model"] = Config::getInstance()->getDeviceModel();
@@ -22,7 +34,7 @@ void buildConnectionResponse(JsonDocument &input, JsonDocument &output)
     output["version"] = Config::getInstance()->getFWVersion();
 }
 
-void buildSysinfoResponse(JsonDocument &input, JsonDocument &output)
+void api_buildSysinfoResponse(JsonDocument &input, JsonDocument &output)
 {
     output["name"] = Config::getInstance()->getFriendlyName();
     output["hostname"] = Config::getInstance()->getHostName();
@@ -76,64 +88,166 @@ void processSetConfig(JsonDocument &input, JsonDocument &output)
     }
 }
 
-void processData(JsonDocument &request, int id, String source, void (*sendCallback)(JsonDocument))
-{
-    String type;
+void replyWithError(JsonDocument &request, JsonDocument &response, int errorCode, String errorMsg=""){
+    api_fillTypeIDCommand(request, response);
+
+    response["code"] = errorCode;
+    if(errorMsg != ""){
+        response["error"] = errorMsg;
+    }
+}
+
+void processPingMessage(JsonDocument &request, JsonDocument &response){
+    Serial.printf("Received Ping message type\n");
+
+    response["type"] = request["type"];
+    response["msg"] = "pong";
+}
+
+
+
+void processAuthMessage(JsonDocument &request, JsonDocument &response){
+    Serial.printf("Received auth message type\n");
+
+    response["type"] = request["type"];
+    response["msg"] = "authentication";
+
+    //check if the auth token matches our expected one
+    String token = request["token"].as<String>();
+    if(token == Config::getInstance()->getToken()){
+        //auth successful
+        Serial.printf("Authentification successful\n");
+        response["code"] = 200;
+    } else {
+        //auth failed - problem when trying to bind a previously configured dock with non-standard password!
+        Serial.printf("Authentification failed\n");
+        //response["code"] = 401;
+        response["code"] = 200;
+    }
+}
+
+//TODO: find a nicer solution later than crossreferencing a flag
+extern boolean identifying;
+
+void processDockMessage(JsonDocument &request, JsonDocument &response){
     String command;
 
-    // prepare response Json object
-    JsonDocument response;
+    if (request.containsKey("msg")){
+        command = request["msg"].as<String>();
+        if (command == "ping"){
+            //we got a ping message
+            processPingMessage(request, response);
+            return;
+        }
+    }
+
+    if (!request.containsKey("command")){
+        replyWithError(request, response, 400, "Missing command field");
+        return;
+    }
+    command = request["command"].as<String>();
+
+    if (command == "get_sysinfo"){
+        api_fillDefaultResponseFields(request, response);
+        api_buildSysinfoResponse(request, response);
+    }
+    else if (command == "identify")
+    {
+        // blink some leds
+        api_fillDefaultResponseFields(request, response);
+        identifying = true;
+    }
+    else if (command == "set_config")
+    {
+        api_fillDefaultResponseFields(request, response);
+        processSetConfig(request, response);
+    }
+    else if (command == "ir_send")
+    {
+        api_fillDefaultResponseFields(request, response);
+        queueIR(request, response);
+
+    }
+    else if (command == "ir_stop")
+    {
+        api_fillDefaultResponseFields(request, response);
+        stopIR(request, response);
+
+    }
+    else if (command == "ir_receive_on")
+    {
+        // DO NOTHING BUT REPLY (for now)
+        api_fillDefaultResponseFields(request, response);
+    }
+    else if (command == "ir_receive_off")
+    {
+        // DO NOTHING BUT REPLY (for now)
+        api_fillDefaultResponseFields(request, response);
+    }
+    else if (command == "remote_charged")
+    {
+        // DO NOTHING BUT REPLY (for now)
+        api_fillDefaultResponseFields(request, response);
+    }
+    else if (command == "remote_lowbattery")
+    {
+        // DO NOTHING BUT REPLY (for now)
+        api_fillDefaultResponseFields(request, response);
+    }
+    else if (command == "remote_normal")
+    {
+        // DO NOTHING BUT REPLY (for now)
+        api_fillDefaultResponseFields(request, response);
+    }
+    else if (command == "set_brightness")
+    {
+        // DO NOTHING BUT REPLY (for now)
+        api_fillDefaultResponseFields(request, response);
+    }
+    else if (command == "set_logging")
+    {
+        // DO NOTHING BUT REPLY (for now)
+        api_fillDefaultResponseFields(request, response);
+    }
+    else if (command == "reboot")
+    {
+        api_fillDefaultResponseFields(request, response, 200, true);
+        //reboot is done after sending response
+    }
+    else if (command == "reset")
+    {
+        api_fillDefaultResponseFields(request, response, 200, true);
+        Config::getInstance()->reset();
+        //reboot is done after sending response
+    }
+    else
+    {
+        Serial.printf("Unsupported command %s\n", command);
+        replyWithError(request, response, 400, "Unsupported command");
+    }
+}
+
+void api_processData(JsonDocument &request, JsonDocument &response){
+
+    String type;
 
     if (request.containsKey("type"))
     {
         type = request["type"].as<String>();
     }
 
-    if (request.containsKey("command"))
-    {
-        command = request["command"].as<String>();
-    }
-
-    // This api only works for a subset of the possible requests
-    // Only the commands that are required for initial setup via Bluetooth are covered.
-    // TODO: Extend to general api decoding for all requests. Put into a class.
     if (type == "dock")
     {
-        if (command == "get_sysinfo")
-        {
-            fillDefaultResponseFields(request, response);
-            buildSysinfoResponse(request, response);
-        }
-        else if (command == "identify")
-        {
-            fillDefaultResponseFields(request, response);
-            // blink some leds in future
-        }
-        else if (command == "set_config")
-        {
-            fillDefaultResponseFields(request, response);
-            processSetConfig(request, response);
-        }
-        else
-        {
-            Serial.printf("Unknown command %s\n", command);
-            fillDefaultResponseFields(request, response, 400);
-        }
+        processDockMessage(request, response);
+    } 
+    else if (type == "auth")
+    {
+        processAuthMessage(request, response);
     }
     else
     {
         Serial.printf("Unknown type %s\n", type);
-        fillDefaultResponseFields(request, response, 400);
-    }
-
-    // if there is anyting that we need to send back
-    if (!response.isNull())
-    {
-        // send document back - currently only bluetooth callback implemented
-        if (source == "bluetooth")
-        {
-            // performs reboot if required
-            sendCallback(response);
-        }
+        api_fillDefaultResponseFields(request, response, 400);
     }
 }
+

@@ -17,7 +17,6 @@
 
 #include "BluetoothSerial.h"
 
-void sCallback(JsonDocument responseJson);
 
 class BluetoothService
 {
@@ -29,13 +28,13 @@ public:
 
     void init();
     void handle();
-    void sendCallback(JsonDocument responseJson);
 
 private:
     static BluetoothService *s_instance;
 
     BluetoothSerial *btSerial = new BluetoothSerial();
-    Config *m_config = Config::getInstance();
+
+    void sendCallback(JsonDocument responseJson);
 
     String m_receivedData = "";
     bool m_interestingData = false;

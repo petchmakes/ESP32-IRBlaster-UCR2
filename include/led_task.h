@@ -1,8 +1,7 @@
 // Copyright 2024 Alex Koessler
-// Based on file Copyrighted by 2024 Craig Petchell
 
-#ifndef BT_TASK_H_
-#define BT_TASK_H_
+#ifndef LED_TASK_H_
+#define LED_TASK_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -10,7 +9,7 @@ extern "C" {
 
 #include <Arduino.h>
 
-void TaskBT(void *pvParameters);
+void TaskLed(void *pvParameters);
 
 #ifdef __cplusplus
 }

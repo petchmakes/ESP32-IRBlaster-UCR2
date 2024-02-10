@@ -11,8 +11,6 @@
 MDNSService* MDNSService::s_instance = nullptr;
 
 
-
-
 MDNSService::MDNSService()
 {
     s_instance = this;
