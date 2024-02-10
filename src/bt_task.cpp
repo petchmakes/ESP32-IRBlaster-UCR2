@@ -19,5 +19,6 @@ void TaskBT(void *pvParameters)
     {
         btService->handle();
         //TODO: blink the led in the discovery pattern!
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }

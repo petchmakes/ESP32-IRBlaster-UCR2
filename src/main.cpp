@@ -5,22 +5,19 @@
 #include <freertos/task.h>
 #include <Arduino.h>
 #include <WiFi.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#include <ArduinoJson.h>
-#include <string.h>
 #include <IRsend.h>
 
 #include <libconfig.h>
 #include <mdns_service.h>
-#include <blaster_config.h>
+
 #include <ir_message.h>
 #include <ir_queue.h>
-#include <ir_task.h>
-#include <web_task.h>
-#include <api_service.h>
-#include <bt_service.h>
-#include <bt_task.h>
+
+#include "ir_task.h"
+#include "web_task.h"
+#include "bt_task.h"
+#include "led_task.h"
+
 
 QueueHandle_t irQueueHandle;
 
@@ -71,6 +68,13 @@ void setup()
     strcpy(deviceSerialNo, WiFi.macAddress().c_str());
     Serial.printf("MAC address: %s\n", deviceSerialNo);
 
+    //Task for controlling the LED is always required
+    const BaseType_t ledTaskHandle = xTaskCreatePinnedToCore(
+        TaskLed, "Task Led Control",
+        32768, NULL, 2, NULL, 0);
+
+
+
     if (WiFi.isConnected())
     {
 
@@ -85,7 +89,7 @@ void setup()
                 delay(1000); // Halt at this point as is not possible to continue
         }
 
-        // Set up two tasks to run independently.
+        // tasks for controlling the ir output via wifi
         const BaseType_t webTaskHandle = xTaskCreatePinnedToCore(
             TaskWeb, "Task Web/Websocket server",
             32768, deviceSerialNo, 2, NULL, 0);

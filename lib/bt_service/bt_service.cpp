@@ -7,7 +7,7 @@
 // Provides bluetooth service for initial configuration of dock without Wifi.
 
 #include "bt_service.h"
-#include "api_service.h"
+#include <api_service.h>
 
 BluetoothService *BluetoothService::s_instance = nullptr;
 
@@ -34,29 +34,17 @@ void BluetoothService::sendCallback(JsonDocument responseJson)
   serializeJson(responseJson, outString);
   btSerial->println(outString);
   Serial.println("Raw Json response: " + outString);
-
-  //check if reboot is required
-  if (responseJson["reboot"].as<boolean>())
-  {
-    Serial.println(F("Rebooting..."));
-    delay(1000);
-    ESP.restart();
-  }
 }
 
-void sCallback(JsonDocument responseJson)
-{
-  BluetoothService::getInstance()->sendCallback(responseJson);
-}
 
 void BluetoothService::init()
 {
   btSerial->register_callback(btConnectCallback);
 
-  if (btSerial->begin(m_config->getHostName()))
+  if (btSerial->begin(Config::getInstance()->getHostName()))
   {
     Serial.print(F("BT initialized with Hostname "));
-    Serial.println(m_config->getHostName().c_str());
+    Serial.println(Config::getInstance()->getHostName().c_str());
   }
   else
   {
@@ -80,6 +68,7 @@ void BluetoothService::handle()
     m_receivedData += "}";
 
     JsonDocument requestJson;
+    JsonDocument responseJson;
     DeserializationError error = deserializeJson(requestJson, m_receivedData);
 
     if (error)
@@ -91,7 +80,23 @@ void BluetoothService::handle()
     {
       Serial.print("Received Json: ");
       Serial.println(m_receivedData.c_str());
-      processData(requestJson, 0, "bluetooth", sCallback);
+
+      api_processData(requestJson, responseJson);
+
+      // if there is anyting that we need to send back
+      if (!responseJson.isNull())
+      {
+        // send document back via callback
+        sendCallback(responseJson);
+
+        // check if reboot is required
+        if (responseJson["reboot"].as<boolean>())
+        {
+          Serial.println(F("Rebooting..."));
+          delay(1000);
+          ESP.restart();
+        }
+      }
     }
     m_receivedData = "";
   }
@@ -99,5 +104,5 @@ void BluetoothService::handle()
   {
     m_receivedData += String(incomingChar);
   }
-  delay(10);
+  vTaskDelay(10 / portTICK_PERIOD_MS);
 }
