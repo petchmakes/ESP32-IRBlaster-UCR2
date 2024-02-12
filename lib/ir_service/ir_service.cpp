@@ -33,15 +33,24 @@ void buildProntoMessage(ir_message_t &message)
     uint16_t offset = 0;
 
     strcpy(workingCode, irCode);
-    char *hexCode = strtok_r(workingCode, ",", &workingPtr);
+    
+    char delimiter[2] = {0,0};
+    delimiter[0] = workingCode[4];
+    if((delimiter[0] != ' ') && (delimiter[0] != ','))
+    {
+        Serial.printf("Pronto delimiter not recognized. Prontocode: %s", workingCode);
+    }
+    
+    char *hexCode = strtok_r(workingCode, delimiter, &workingPtr);
     while (hexCode)
     {
         message.code16[offset++] = strtoul(hexCode, NULL, 16);
-        hexCode = strtok_r(NULL, ",", &workingPtr);
+        hexCode = strtok_r(NULL, delimiter, &workingPtr);
     }
 
     message.format = pronto;
     message.action = send;
+    message.decodeType = PRONTO;
 }
 
 void buildHexMessage(ir_message_t &message)
