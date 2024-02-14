@@ -15,8 +15,6 @@
 #include "blaster_config.h"
 
 
-boolean identifying = false;
-
 void notFound(AsyncWebServerRequest *request)
 {
     Serial.printf("404 for: %s\n", request->url());
@@ -106,20 +104,7 @@ void TaskWeb(void *pvParameters)
     for (;;)
     {
         MDNSService::getInstance()->loop();
-        if(identifying) {
-            for (int i = 0; i < 10; i++) // 5 seconds (10*0.5)
-            {
-                digitalWrite(BLASTER_PIN_INDICATOR, 1);
-                digitalWrite(BLASTER_PIN_IR_INTERNAL, 1);
-                vTaskDelay(250 / portTICK_PERIOD_MS);
-                digitalWrite(BLASTER_PIN_INDICATOR, 0);
-                digitalWrite(BLASTER_PIN_IR_INTERNAL, 0);
-                vTaskDelay(250 / portTICK_PERIOD_MS);
-            }
-            identifying = 0;
-        } else {
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
-        
+
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }

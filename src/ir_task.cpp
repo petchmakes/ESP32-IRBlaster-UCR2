@@ -10,7 +10,6 @@
 
 #include "blaster_config.h"
 
-
 uint16_t irRepeat = 0;
 ir_message_t repeatMessage;
 IRsend irsend(true, 0);
@@ -27,7 +26,6 @@ bool repeatCallback()
 
 void irSetup()
 {
-    pinMode(BLASTER_PIN_INDICATOR, OUTPUT);
     pinMode(BLASTER_PIN_IR_INTERNAL, OUTPUT);
     pinMode(BLASTER_PIN_IR_OUT_1, OUTPUT);
     pinMode(BLASTER_PIN_IR_OUT_2, OUTPUT);
@@ -74,7 +72,9 @@ void TaskSendIR(void *pvParameters)
                 {
                 case send:
                 {
-                    uint32_t ir_pin_mask = 0 | 1 << BLASTER_PIN_INDICATOR | message.ir_internal << BLASTER_PIN_IR_INTERNAL | message.ir_ext1 << BLASTER_PIN_IR_OUT_1 | message.ir_ext2 << BLASTER_PIN_IR_OUT_2;
+                    // pin indicator was removed from the ir mask.
+                    // TODO: trigger some short flashing once a ir command is sent.
+                    uint32_t ir_pin_mask = 0 | message.ir_internal << BLASTER_PIN_IR_INTERNAL | message.ir_ext1 << BLASTER_PIN_IR_OUT_1 | message.ir_ext2 << BLASTER_PIN_IR_OUT_2;
                     irsend.setPinMask(ir_pin_mask);
                     switch (message.format)
                     {
