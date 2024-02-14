@@ -126,8 +126,9 @@ void processAuthMessage(JsonDocument &request, JsonDocument &response){
     }
 }
 
-//TODO: find a nicer solution later than crossreferencing a flag
-extern boolean identifying;
+//TODO: implement a nicer solution later than crossreferencing a function
+extern void setLedStateIdentify();
+
 
 void processDockMessage(JsonDocument &request, JsonDocument &response){
     String command;
@@ -155,7 +156,7 @@ void processDockMessage(JsonDocument &request, JsonDocument &response){
     {
         // blink some leds
         api_fillDefaultResponseFields(request, response);
-        identifying = true;
+        setLedStateIdentify();
     }
     else if (command == "set_config")
     {
