@@ -27,6 +27,9 @@ MDNSService *myMdns;
 char deviceSerialNo[20] = {0};
 char wifihostname[50] = {0};
 
+const unsigned long oneMinute = 1 * 60 * 1000UL;
+unsigned long previousMillis = 0;
+
 void setup()
 {
     Serial.begin(115200);
@@ -58,6 +61,7 @@ void setup()
         else
         {
             Serial.printf("IP Address: %s\n", WiFi.localIP().toString());
+            previousMillis = millis();
         }
     }
     else
@@ -109,5 +113,22 @@ void setup()
 
 void loop()
 {
+    unsigned long currentMillis = millis();
+    //check if Wifi is active
+    if(WiFi.getMode() == WIFI_STA){
+        // if WiFi is down, try reconnecting every CHECK_WIFI_TIME seconds
+        if ((WiFi.status() != WL_CONNECTED) && (currentMillis - previousMillis >= oneMinute)) {
+            //Serial.print(millis());
+            Serial.println("Wifi connection lost. Reconnecting...");
+            WiFi.disconnect();
+            WiFi.reconnect();
+            previousMillis = currentMillis;
+            if(WiFi.status() != WL_CONNECTED){
+                Serial.println("Reconnection failed. Trying again in 1 minute.");
+            }else{
+                Serial.println("Reconnection successful.");
+            }
+        }
+    }
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 }

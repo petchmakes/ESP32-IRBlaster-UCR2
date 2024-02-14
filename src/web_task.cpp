@@ -94,12 +94,14 @@ void TaskWeb(void *pvParameters)
     AsyncWebServer server(Config::getInstance()->API_port);
     AsyncWebSocket ws("/");
 
-    // server.
+    // start websocket server.
     ws.onEvent(onWSEvent);
     server.addHandler(&ws);
     server.onNotFound(notFound);
 
     server.begin();
+
+    MDNSService::getInstance()->startService();
 
     for (;;)
     {

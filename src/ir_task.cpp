@@ -56,7 +56,7 @@ void sendHexCode(ir_message_t &message)
         irsend.send(message.decodeType, message.code64, message.codeLen, irRepeat);
     }
 }
-//int blub=0;
+
 void TaskSendIR(void *pvParameters)
 {
     Serial.printf("TaskSendIR running on core %d\n", xPortGetCoreID());
@@ -76,12 +76,6 @@ void TaskSendIR(void *pvParameters)
                 {
                     uint32_t ir_pin_mask = 0 | 1 << BLASTER_PIN_INDICATOR | message.ir_internal << BLASTER_PIN_IR_INTERNAL | message.ir_ext1 << BLASTER_PIN_IR_OUT_1 | message.ir_ext2 << BLASTER_PIN_IR_OUT_2;
                     irsend.setPinMask(ir_pin_mask);
-//                    blub += 1;
-//                    if (blub%2 == 1){
-//                        GPIO.out_w1ts = ir_pin_mask;
-//                    } else {
-//                        GPIO.out_w1tc = ir_pin_mask;
-//                    }
                     switch (message.format)
                     {
                     case pronto:
