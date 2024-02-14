@@ -22,6 +22,7 @@ public:
 
     // Triggers a restart of the mDNS service with current config
     void restartService() { m_forceRestart = true; }
+    void startService();
 
     // Worker loop
     void loop();
@@ -32,7 +33,7 @@ private:
     String m_mdnsHostname;
     Config *m_config = Config::getInstance();
 
-    void startService();
+    //void startService();
     void stopService();
 };
 
