@@ -14,7 +14,7 @@ Config *Config::s_instance = nullptr;
 // initializing config
 Config::Config()
 {
-    s_instance = this;
+    //s_instance = this;
 
     // if no LED brightness setting, set default
     if (getLedBrightness() == 0)

@@ -18,59 +18,80 @@
 #include "bt_task.h"
 #include "led_task.h"
 
+#define MAX_WIFI_CONNECTION_TRIES 3
 
 QueueHandle_t irQueueHandle;
 
-Config *config;
-MDNSService *myMdns;
 
-char deviceSerialNo[20] = {0};
 char wifihostname[50] = {0};
 
 const unsigned long oneMinute = 1 * 60 * 1000UL;
 unsigned long previousMillis = 0;
 
+
+void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
+    Serial.println("Wifi connected successfully.");
+    previousMillis = millis();
+}
+
+void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
+    Serial.printf("IP Address: %s\n", WiFi.localIP().toString());
+    MDNSService::getInstance().restartService();
+}
+
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
+    Serial.println("Disconnected from WiFi access point");
+    Serial.print("WiFi lost connection. Reason: ");
+    Serial.println(info.wifi_sta_disconnected.reason);
+    previousMillis = millis();
+}
+
+
 void setup()
 {
     Serial.begin(115200);
 
-    config = new Config();
-    myMdns = new MDNSService();
+    Config &config = Config::getInstance();
 
-    if (config->getWifiSsid() != "")
+
+    if (config.getWifiSsid() != "")
     {
         Serial.println(F("SSID present in config."));
         WiFi.enableSTA(true);
         WiFi.mode(WIFI_STA);
         WiFi.setSleep(false);
         Serial.print("Setting Wifi Hostname: ");
-        strcpy(wifihostname, config->getHostName().c_str());
+        strcpy(wifihostname, config.getHostName().c_str());
         Serial.println(wifihostname);
         WiFi.setHostname(wifihostname);
 
-        Serial.println(F("Connecting to Wifi ..."));
-        WiFi.begin(config->getWifiSsid().c_str(), config->getWifiPassword().c_str());
-        // try to connect to wifi for 30 secs, otherwise fall back to bluetooth.
-        if (WiFi.waitForConnectResult(30000) != WL_CONNECTED)
+        WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
+        WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
+        WiFi.onEvent(WiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+
+        Serial.println(F("Connecting to Wifi"));
+        for(int i = 0; i < MAX_WIFI_CONNECTION_TRIES; ++i){
+            Serial.printf("Connection attempt %d/%d ...", i+1, MAX_WIFI_CONNECTION_TRIES);
+            WiFi.begin(config.getWifiSsid().c_str(), config.getWifiPassword().c_str());
+            // try to connect to wifi for 10 secs
+            if (WiFi.waitForConnectResult(10000) == WL_CONNECTED)
+            {
+                //we are connected.
+                break;
+            }
+        }
+        if(!WiFi.isConnected())
         {
             Serial.printf("Starting WiFi Failed! Falling back to Bluetooth discovery.\n");
             // turn off wifi! nasty aborts will happen when accessing bluetooth if you don't.
             WiFi.mode(WIFI_OFF);
             delay(500);
         }
-        else
-        {
-            Serial.printf("IP Address: %s\n", WiFi.localIP().toString());
-            previousMillis = millis();
-        }
     }
     else
     {
         Serial.println(F("Booting without Wifi. SSID not found in config."));
     }
-
-    strcpy(deviceSerialNo, WiFi.macAddress().c_str());
-    Serial.printf("MAC address: %s\n", deviceSerialNo);
 
     //Task for controlling the LED is always required
     const BaseType_t ledTaskHandle = xTaskCreatePinnedToCore(
@@ -96,7 +117,7 @@ void setup()
         // tasks for controlling the ir output via wifi
         const BaseType_t webTaskHandle = xTaskCreatePinnedToCore(
             TaskWeb, "Task Web/Websocket server",
-            32768, deviceSerialNo, 2, NULL, 0);
+            32768, NULL, 2, NULL, 0);
         const BaseType_t irTaskHandle = xTaskCreatePinnedToCore(
             TaskSendIR, "Task IR send task",
             32768, NULL, 3 /* highest priority */, NULL, 1);

@@ -15,8 +15,14 @@
 class Config
 {
 public:
-    explicit Config();
-    virtual ~Config() {}
+    //static Config *getInstance() { return s_instance; }
+
+    static Config& getInstance()
+    {
+        static Config instance; // Guaranteed to be destroyed.
+                                // Instantiated on first use.
+        return instance;
+    }
 
     // getter and setter for brightness value
     // int between 10 and 100
@@ -52,13 +58,15 @@ public:
     // reset config to defaults
     void reset();
 
-    static Config *getInstance() { return s_instance; }
 
     // OTA Port currently not announced by original dock
     // int             OTA_port = 80;
     const int API_port = 946;
 
 private:
+    explicit Config();
+    virtual ~Config() {}
+
     Preferences m_preferences;
 
     const int m_defaultLedBrightness = 75;

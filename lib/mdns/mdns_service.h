@@ -15,10 +15,14 @@
 class MDNSService
 {
 public:
-    explicit MDNSService();
-    virtual ~MDNSService() {}
 
-    static MDNSService *getInstance() { return s_instance; }
+    //static MDNSService *getInstance() { return s_instance; }
+
+    static MDNSService& getInstance()
+    {
+        static MDNSService instance;
+        return instance;
+    }
 
     // Triggers a restart of the mDNS service with current config
     void restartService() { m_forceRestart = true; }
@@ -28,10 +32,13 @@ public:
     void loop();
 
 private:
-    static MDNSService *s_instance;
+    explicit MDNSService() {}
+    virtual ~MDNSService() {}
+
+//    static MDNSService *s_instance;
     boolean m_forceRestart = false;
     String m_mdnsHostname;
-    Config *m_config = Config::getInstance();
+    Config &m_config = Config::getInstance();
 
     //void startService();
     void stopService();
