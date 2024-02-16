@@ -7,12 +7,12 @@
 
 #include "mdns_service.h"
 
-MDNSService *MDNSService::s_instance = nullptr;
+//MDNSService *MDNSService::s_instance = nullptr;
 
-MDNSService::MDNSService()
-{
-    s_instance = this;
-}
+//MDNSService::MDNSService()
+//{
+//    s_instance = this;
+//}
 
 void MDNSService::startService()
 {
@@ -20,7 +20,7 @@ void MDNSService::startService()
     static String hostname = "";
 
     // getting hostname from config and storing it statically
-    hostname = m_config->getHostName();
+    hostname = m_config.getHostName();
 
     Serial.println(F("Starting mDNS ..."));
     // TODO: Add max retries for MDNS starting
@@ -34,18 +34,20 @@ void MDNSService::startService()
     {
 
         // Adding required mDNS services
-        MDNS.addService("_uc-dock", "_tcp", m_config->API_port);
-        MDNS.addServiceTxt("_uc-dock", "_tcp", "rev", m_config->getHWRevision());
-        MDNS.addServiceTxt("_uc-dock", "_tcp", "model", m_config->getDeviceModel());
-        MDNS.addServiceTxt("_uc-dock", "_tcp", "ver", m_config->getFWVersion());
-        MDNS.addServiceTxt("_uc-dock", "_tcp", "name", m_config->getFriendlyName());
+        MDNS.addService("_uc-dock", "_tcp", m_config.API_port);
+        MDNS.addServiceTxt("_uc-dock", "_tcp", "rev", m_config.getHWRevision());
+        MDNS.addServiceTxt("_uc-dock", "_tcp", "model", m_config.getDeviceModel());
+        MDNS.addServiceTxt("_uc-dock", "_tcp", "ver", m_config.getFWVersion());
+        MDNS.addServiceTxt("_uc-dock", "_tcp", "name", m_config.getFriendlyName());
         // available in archived repo but not used in v2 any more?
-        // MDNS.addService("_uc-dock-ota", "_tcp", m_config->OTA_port);
+        // MDNS.addService("_uc-dock-ota", "_tcp", m_config.OTA_port);
         Serial.printf("Started mDNS with hostname: %s\n", hostname.c_str());
-        Serial.printf("Announcing friendly name: %s\n", m_config->getFriendlyName().c_str());
+        Serial.printf("Announcing friendly name: %s\n", m_config.getFriendlyName().c_str());
         
 
         Serial.println(F("mDNS services updated"));
+        m_forceRestart = false;
+
     }
 }
 void MDNSService::stopService()
@@ -55,18 +57,10 @@ void MDNSService::stopService()
 
 void MDNSService::loop()
 {
-    //    const unsigned long tenMinutes = 10 * 60 * 1000UL;
-    //    static unsigned long lastSampleTime = 0 - tenMinutes;
-
-    //    unsigned long now = millis();
-    //    if ((now - lastSampleTime >= tenMinutes) || m_forceRestart ){
     if (m_forceRestart)
     {
-        // update last exec time
-        // lastSampleTime = now;
-        m_forceRestart = false;
         stopService();
-        delay(1000);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
         startService();
     }
 }

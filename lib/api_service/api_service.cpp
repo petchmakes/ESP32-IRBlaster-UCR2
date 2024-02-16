@@ -29,20 +29,20 @@ void api_fillDefaultResponseFields(JsonDocument &input, JsonDocument &output, in
 void api_buildConnectionResponse(JsonDocument &input, JsonDocument &output)
 {
     output["type"] = "auth_required";
-    output["model"] = Config::getInstance()->getDeviceModel();
-    output["revision"] = Config::getInstance()->getHWRevision();
-    output["version"] = Config::getInstance()->getFWVersion();
+    output["model"] = Config::getInstance().getDeviceModel();
+    output["revision"] = Config::getInstance().getHWRevision();
+    output["version"] = Config::getInstance().getFWVersion();
 }
 
 void api_buildSysinfoResponse(JsonDocument &input, JsonDocument &output)
 {
-    output["name"] = Config::getInstance()->getFriendlyName();
-    output["hostname"] = Config::getInstance()->getHostName();
-    output["model"] = Config::getInstance()->getDeviceModel();
-    output["revision"] = Config::getInstance()->getHWRevision();
-    output["version"] = Config::getInstance()->getFWVersion();
-    output["serial"] = Config::getInstance()->getSerial();
-    output["ir_learning"] = Config::getInstance()->getIRLearning();
+    output["name"] = Config::getInstance().getFriendlyName();
+    output["hostname"] = Config::getInstance().getHostName();
+    output["model"] = Config::getInstance().getDeviceModel();
+    output["revision"] = Config::getInstance().getHWRevision();
+    output["version"] = Config::getInstance().getFWVersion();
+    output["serial"] = Config::getInstance().getSerial();
+    output["ir_learning"] = Config::getInstance().getIRLearning();
 }
 
 void processSetConfig(JsonDocument &input, JsonDocument &output)
@@ -53,7 +53,7 @@ void processSetConfig(JsonDocument &input, JsonDocument &output)
         String token = input["token"].as<String>();
         if (strlen(token.c_str()) >= 4 && strlen(token.c_str()) <= 40)
         {
-            Config::getInstance()->setToken(token);
+            Config::getInstance().setToken(token);
         }
         else
         {
@@ -68,8 +68,8 @@ void processSetConfig(JsonDocument &input, JsonDocument &output)
         String ssid = input["ssid"].as<String>();
         String pass = input["wifi_password"].as<String>();
 
-        Config::getInstance()->setWifiSsid(ssid);
-        Config::getInstance()->setWifiPassword(pass);
+        Config::getInstance().setWifiSsid(ssid);
+        Config::getInstance().setWifiPassword(pass);
         Serial.println("Saved new WIFI config. SSID:" + ssid + " PASS:" + pass);
         output["reboot"] = true;
     }
@@ -77,13 +77,13 @@ void processSetConfig(JsonDocument &input, JsonDocument &output)
     if (input.containsKey("friendly_name"))
     {
         String friendlyname = input["friendly_name"].as<String>();
-        if (friendlyname != Config::getInstance()->getFriendlyName())
+        if (friendlyname != Config::getInstance().getFriendlyName())
         {
             // friendlyname has changed. update conf
             Serial.printf("Updating FriendlyName to %s\n", friendlyname.c_str());
-            Config::getInstance()->setFriendlyName(friendlyname);
+            Config::getInstance().setFriendlyName(friendlyname);
             // inform other subsystems about the change (e.g., mdns, ...)
-            MDNSService::getInstance()->restartService();
+            MDNSService::getInstance().restartService();
         }
     }
 }
@@ -114,7 +114,7 @@ void processAuthMessage(JsonDocument &request, JsonDocument &response){
 
     //check if the auth token matches our expected one
     String token = request["token"].as<String>();
-    if(token == Config::getInstance()->getToken()){
+    if(token == Config::getInstance().getToken()){
         //auth successful
         Serial.printf("Authentification successful\n");
         response["code"] = 200;
@@ -218,7 +218,7 @@ void processDockMessage(JsonDocument &request, JsonDocument &response){
     else if (command == "reset")
     {
         api_fillDefaultResponseFields(request, response, 200, true);
-        Config::getInstance()->reset();
+        Config::getInstance().reset();
         //reboot is done after sending response
     }
     else

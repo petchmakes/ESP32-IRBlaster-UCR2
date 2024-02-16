@@ -41,10 +41,10 @@ void BluetoothService::init()
 {
   btSerial->register_callback(btConnectCallback);
 
-  if (btSerial->begin(Config::getInstance()->getHostName()))
+  if (btSerial->begin(Config::getInstance().getHostName()))
   {
     Serial.print(F("BT initialized with Hostname "));
-    Serial.println(Config::getInstance()->getHostName().c_str());
+    Serial.println(Config::getInstance().getHostName().c_str());
   }
   else
   {

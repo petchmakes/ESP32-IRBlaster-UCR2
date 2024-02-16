@@ -89,7 +89,7 @@ void TaskWeb(void *pvParameters)
 {
     Serial.printf("TaskWeb running on core %d\n", xPortGetCoreID());
 
-    AsyncWebServer server(Config::getInstance()->API_port);
+    AsyncWebServer server(Config::getInstance().API_port);
     AsyncWebSocket ws("/");
 
     // start websocket server.
@@ -99,11 +99,11 @@ void TaskWeb(void *pvParameters)
 
     server.begin();
 
-    MDNSService::getInstance()->startService();
+    MDNSService::getInstance().startService();
 
     for (;;)
     {
-        MDNSService::getInstance()->loop();
+        MDNSService::getInstance().loop();
 
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
