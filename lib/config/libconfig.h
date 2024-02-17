@@ -15,9 +15,7 @@
 class Config
 {
 public:
-    //static Config *getInstance() { return s_instance; }
-
-    static Config& getInstance()
+    static Config &getInstance()
     {
         static Config instance; // Guaranteed to be destroyed.
                                 // Instantiated on first use.
@@ -57,7 +55,6 @@ public:
 
     // reset config to defaults
     void reset();
-
 
     // OTA Port currently not announced by original dock
     // int             OTA_port = 80;
