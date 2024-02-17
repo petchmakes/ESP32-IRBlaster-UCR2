@@ -16,8 +16,6 @@ class MDNSService
 {
 public:
 
-    //static MDNSService *getInstance() { return s_instance; }
-
     static MDNSService& getInstance()
     {
         static MDNSService instance;
@@ -35,7 +33,6 @@ private:
     explicit MDNSService() {}
     virtual ~MDNSService() {}
 
-//    static MDNSService *s_instance;
     boolean m_forceRestart = false;
     String m_mdnsHostname;
     Config &m_config = Config::getInstance();

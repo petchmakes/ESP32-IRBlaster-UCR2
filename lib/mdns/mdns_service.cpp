@@ -7,12 +7,6 @@
 
 #include "mdns_service.h"
 
-//MDNSService *MDNSService::s_instance = nullptr;
-
-//MDNSService::MDNSService()
-//{
-//    s_instance = this;
-//}
 
 void MDNSService::startService()
 {
@@ -44,10 +38,8 @@ void MDNSService::startService()
         Serial.printf("Started mDNS with hostname: %s\n", hostname.c_str());
         Serial.printf("Announcing friendly name: %s\n", m_config.getFriendlyName().c_str());
         
-
         Serial.println(F("mDNS services updated"));
         m_forceRestart = false;
-
     }
 }
 void MDNSService::stopService()
