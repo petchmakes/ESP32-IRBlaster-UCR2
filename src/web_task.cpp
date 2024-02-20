@@ -15,6 +15,11 @@
 #include "blaster_config.h"
 
 
+#define SOCKET_DATA_SIZE 4096
+
+char *socketData;
+int currSocketBufferIndex;
+
 void notFound(AsyncWebServerRequest *request)
 {
     Serial.printf("404 for: %s\n", request->url());
@@ -41,8 +46,45 @@ void onWSEvent(AsyncWebSocket *server,
         Serial.printf("WebSocket client #%u disconnected\n", client->id());
         break;
     case WS_EVT_DATA:
-        Serial.printf("Raw json Message %.*s\n", len, data);
-        deserializeJson(input, data, len);
+    {
+        AwsFrameInfo * info = (AwsFrameInfo*)arg;
+        if(info->final && info->index == 0 && info->len == len)
+        {
+            // the whole message is in a single frame and we got all of it's data
+            Serial.printf("Raw json Message: %.*s\n", len, data);
+            deserializeJson(input, data, len);
+        }
+        else
+        {
+            // message is comprised of multiple frames or the frame is split into multiple packets
+			if (socketData == NULL) {
+				// allocate memory for buffer on first call
+				socketData  = (char *) malloc (SOCKET_DATA_SIZE);
+			}
+            for (size_t i = 0; i < len; i++)
+            {
+				// stop if message is bigger than buffer
+				if (currSocketBufferIndex >= SOCKET_DATA_SIZE - 1) {
+					Serial.printf("Raw json Message too big. Not processing.\n");
+					break;
+				}
+                // copy data of each chunk into buffer
+                socketData[currSocketBufferIndex] = data[i];
+                currSocketBufferIndex++;
+            }
+            if(info->final && currSocketBufferIndex >= info->len)
+            {
+				Serial.printf("Raw json Message: %.*s\n", currSocketBufferIndex, socketData);
+                // deserialize data after last chunk
+                socketData[currSocketBufferIndex] = '\0';
+                deserializeJson(input, socketData, currSocketBufferIndex);
+                currSocketBufferIndex = 0;
+            }
+			else
+			{
+				break;
+			}
+        }
         if (!input.isNull())
         {
             api_processData(input, output);
@@ -51,6 +93,7 @@ void onWSEvent(AsyncWebSocket *server,
         {
             Serial.print("WebSocket no JSON document sent\n");
         }
+    }
     case WS_EVT_PONG:
         Serial.print("WebSocket Event PONG\n");
         break;
@@ -73,7 +116,7 @@ void onWSEvent(AsyncWebSocket *server,
         if((responseMsg == "authentication") && (responseCode == 401)){
             //client ->close();
         }
-        
+
         //check if we have to reboot
         if(output["reboot"].as<boolean>()){
             Serial.println(F("Rebooting..."));
