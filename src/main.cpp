@@ -33,7 +33,7 @@ void setup()
     // Task for controlling the LED is always required
     const BaseType_t ledTaskHandle = xTaskCreatePinnedToCore(
         TaskLed, "Task Led Control",
-        8192, NULL, 2, NULL, 0);
+        32768, NULL, 2, NULL, 0);
 
     if (wifiSrv.isActive())
     {
@@ -52,7 +52,7 @@ void setup()
         // tasks for controlling the ir output via wifi
         const BaseType_t webTaskHandle = xTaskCreatePinnedToCore(
             TaskWeb, "Task Web/Websocket server",
-            16384, NULL, 2, NULL, 0);
+            32768, NULL, 2, NULL, 0);
         const BaseType_t irTaskHandle = xTaskCreatePinnedToCore(
             TaskSendIR, "Task IR send task",
             32768, NULL, 3 /* highest priority */, NULL, 1);
