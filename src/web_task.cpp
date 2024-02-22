@@ -10,13 +10,9 @@
 #include <mdns_service.h>
 #include <api_service.h>
 #include <libconfig.h>
-#include <log_service.h>
 
 #include "web_task.h"
 #include "blaster_config.h"
-
-const String logModule="web";
-
 
 
 #define SOCKET_DATA_SIZE 4096
@@ -42,12 +38,12 @@ void onWSEvent(AsyncWebSocket *server,
     switch (type)
     {
     case WS_EVT_CONNECT:
-        logOutput(LOG_INFO, logModule, "WebSocket client #" + String(client->id()) + " connected from " + client->remoteIP().toString());
+        Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
         client->keepAlivePeriod(1);
         api_buildConnectionResponse(input, output);
         break;
     case WS_EVT_DISCONNECT:
-        logOutput(LOG_INFO, logModule, "WebSocket client #" + String(client->id()) + " disconnected");
+        Serial.printf("WebSocket client #%u disconnected\n", client->id());
         break;
     case WS_EVT_DATA:
     {
@@ -134,7 +130,7 @@ void onWSEvent(AsyncWebSocket *server,
 
 void TaskWeb(void *pvParameters)
 {
-    logOutput(LOG_INFO, logModule, "TaskWeb running on core " + String(xPortGetCoreID()));
+    Serial.printf("TaskWeb running on core %d\n", xPortGetCoreID());
 
     AsyncWebServer server(Config::getInstance().API_port);
     AsyncWebSocket ws("/");
