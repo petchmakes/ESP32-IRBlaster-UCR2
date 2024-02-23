@@ -57,33 +57,33 @@ void onWSEvent(AsyncWebSocket *server,
         else
         {
             // message is comprised of multiple frames or the frame is split into multiple packets
-			if (socketData == NULL) {
-				// allocate memory for buffer on first call
-				socketData  = (char *) malloc (SOCKET_DATA_SIZE);
-			}
+            if (socketData == NULL) {
+                // allocate memory for buffer on first call
+                socketData  = (char *) malloc (SOCKET_DATA_SIZE);
+            }
             for (size_t i = 0; i < len; i++)
             {
-				// stop if message is bigger than buffer
-				if (currSocketBufferIndex >= SOCKET_DATA_SIZE - 1) {
-					Serial.printf("Raw json Message too big. Not processing.\n");
-					break;
-				}
+                // stop if message is bigger than buffer
+                if (currSocketBufferIndex >= SOCKET_DATA_SIZE - 1) {
+                    Serial.printf("Raw json Message too big. Not processing.\n");
+                    break;
+                }
                 // copy data of each chunk into buffer
                 socketData[currSocketBufferIndex] = data[i];
                 currSocketBufferIndex++;
             }
             if(info->final && currSocketBufferIndex >= info->len)
             {
-				Serial.printf("Raw json Message: %.*s\n", currSocketBufferIndex, socketData);
+                Serial.printf("Raw json Message: %.*s\n", currSocketBufferIndex, socketData);
                 // deserialize data after last chunk
                 socketData[currSocketBufferIndex] = '\0';
                 deserializeJson(input, socketData, currSocketBufferIndex);
                 currSocketBufferIndex = 0;
             }
-			else
-			{
-				break;
-			}
+            else
+            {
+                break;
+            }
         }
         if (!input.isNull())
         {
