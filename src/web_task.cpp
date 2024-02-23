@@ -64,7 +64,7 @@ void onWSEvent(AsyncWebSocket *server,
             for (size_t i = 0; i < len; i++)
             {
                 // stop if message is bigger than buffer
-                if (currSocketBufferIndex >= SOCKET_DATA_SIZE - 1) {
+                if (currSocketBufferIndex >= SOCKET_DATA_SIZE) {
                     Serial.printf("Raw json Message too big. Not processing.\n");
                     break;
                 }
@@ -76,7 +76,6 @@ void onWSEvent(AsyncWebSocket *server,
             {
                 Serial.printf("Raw json Message: %.*s\n", currSocketBufferIndex, socketData);
                 // deserialize data after last chunk
-                socketData[currSocketBufferIndex] = '\0';
                 deserializeJson(input, socketData, currSocketBufferIndex);
                 currSocketBufferIndex = 0;
             }
