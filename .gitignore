@@ -1,4 +1,5 @@
 .pio
 .vscode/*
+.idea
 include/secrets.h
 kicad/*backup*/*.zip

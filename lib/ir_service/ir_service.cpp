@@ -181,7 +181,7 @@ void queueIRMessage(ir_message_t &message)
         if (ret == pdTRUE)
         {
             // The message was successfully sent.
-            Serial.println("Action successfully send to the IR Queue");
+            Serial.println("Action successfully sent to the IR Queue");
         }
         else if (ret == errQUEUE_FULL)
         {
