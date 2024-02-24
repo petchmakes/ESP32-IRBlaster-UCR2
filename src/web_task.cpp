@@ -14,10 +14,9 @@
 #include "web_task.h"
 #include "blaster_config.h"
 
+#define SOCKET_DATA_SIZE 2048
 
-#define SOCKET_DATA_SIZE 4096
-
-char *socketData;
+char socketData[SOCKET_DATA_SIZE];
 int currSocketBufferIndex;
 
 void notFound(AsyncWebServerRequest *request)
@@ -47,41 +46,56 @@ void onWSEvent(AsyncWebSocket *server,
         break;
     case WS_EVT_DATA:
     {
-        AwsFrameInfo * info = (AwsFrameInfo*)arg;
-        if(info->final && info->index == 0 && info->len == len)
+        AwsFrameInfo *info = (AwsFrameInfo *)arg;
+
+        // currently we are only expecting text messages
+        if (info->opcode == WS_BINARY)
         {
-            // the whole message is in a single frame and we got all of it's data
-            Serial.printf("Raw json Message: %.*s\n", len, data);
-            deserializeJson(input, data, len);
+            // receiving new message (first frame) reset buffer index
+            Serial.printf("Websocket received an unhandled binary message from %s.\n", client->remoteIP().toString().c_str());
+            currSocketBufferIndex = 0;
         }
-        else
+        if (info->opcode == WS_TEXT)
         {
-            // message is comprised of multiple frames or the frame is split into multiple packets
-            if (socketData == NULL) {
-                // allocate memory for buffer on first call
-                socketData  = (char *) malloc (SOCKET_DATA_SIZE);
-            }
-            for (size_t i = 0; i < len; i++)
+            // receiving a new message (or first frame of a fragmented message). reset buffer index.
+            currSocketBufferIndex = 0;
+        }
+        if ((info->opcode == WS_TEXT) || (info->opcode == WS_CONTINUATION))
+        {
+            // handle data
+            if (currSocketBufferIndex + len >= SOCKET_DATA_SIZE)
             {
-                // stop if message is bigger than buffer
-                if (currSocketBufferIndex >= SOCKET_DATA_SIZE) {
-                    Serial.printf("Raw json Message too big. Not processing.\n");
-                    break;
-                }
-                // copy data of each chunk into buffer
-                socketData[currSocketBufferIndex] = data[i];
-                currSocketBufferIndex++;
-            }
-            if(info->final && currSocketBufferIndex >= info->len)
-            {
-                Serial.printf("Raw json Message: %.*s\n", currSocketBufferIndex, socketData);
-                // deserialize data after last chunk
-                deserializeJson(input, socketData, currSocketBufferIndex);
+                // TODO: check about feasible max data size we expect.
+                // Any IR code longer than MAX_IR_TEXT_CODE_LENGTH (2048) will not be queyed anyways
+                Serial.printf("Raw JSON message too big for buffer. Not processing.\n");
                 currSocketBufferIndex = 0;
+                // TODO: what will be returned in this case? Currently this will lead to a timeout.
             }
             else
             {
-                break;
+                for (size_t i = 0; i < len; i++)
+                {
+                    // copy data of each chunk into buffer
+                    socketData[currSocketBufferIndex] = data[i];
+                    currSocketBufferIndex++;
+                }
+                // check if this is the end of the message
+                if (info->final)
+                {
+                    Serial.printf("Raw JSON Message: %.*s\n", currSocketBufferIndex, socketData);
+                    // deserialize data after last chunk
+                    DeserializationError err = deserializeJson(input, socketData, currSocketBufferIndex);
+                    if (err)
+                    {
+                        Serial.print(F("deserializeJson() failed with code "));
+                        Serial.println(err.f_str());
+                    }
+                    currSocketBufferIndex = 0;
+                }
+                else
+                {
+                    Serial.printf("Received non-final WS frame. Current buffer content: %.*s\n", currSocketBufferIndex, socketData);
+                }
             }
         }
         if (!input.isNull())
@@ -90,14 +104,18 @@ void onWSEvent(AsyncWebSocket *server,
         }
         else
         {
-            Serial.print("WebSocket no JSON document sent\n");
+            if (info->final)
+            {
+                Serial.print("WebSocket received no JSON document. ");
+                Serial.printf("Raw Message of length %d received: %.*s\n", len, len, data);
+            }
         }
     }
     case WS_EVT_PONG:
         Serial.print("WebSocket Event PONG\n");
         break;
     case WS_EVT_ERROR:
-        Serial.printf("WebSocket client #%u error #%u: %s\n", client->id(), *((uint16_t*)arg), (char*)data);
+        Serial.printf("WebSocket client #%u error #%u: %s\n", client->id(), *((uint16_t *)arg), (char *)data);
         break;
     }
     if (!output.isNull())
@@ -106,26 +124,26 @@ void onWSEvent(AsyncWebSocket *server,
         size_t len = measureJson(output);
         AsyncWebSocketMessageBuffer *buf = server->makeBuffer(len);
         serializeJson(output, buf->get(), len);
-        Serial.printf("Raw json response %.*s\n", len, buf->get());
+        Serial.printf("Raw JSON response %.*s\n", len, buf->get());
         client->text(buf);
 
-        //check if we have to close the ws connection (failed auth)
+        // check if we have to close the ws connection (failed auth)
         String responseMsg = output["msg"].as<String>();
         int responseCode = output["code"].as<int>();
-        if((responseMsg == "authentication") && (responseCode == 401)){
-            //client ->close();
+        if ((responseMsg == "authentication") && (responseCode == 401))
+        {
+            // client ->close();
         }
 
-        //check if we have to reboot
-        if(output["reboot"].as<boolean>()){
+        // check if we have to reboot
+        if (output["reboot"].as<boolean>())
+        {
             Serial.println(F("Rebooting..."));
             delay(500);
             ESP.restart();
         }
     }
 }
-
-
 
 void TaskWeb(void *pvParameters)
 {
